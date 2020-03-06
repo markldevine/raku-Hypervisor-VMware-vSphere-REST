@@ -1,0 +1,22 @@
+{
+  "api": "0.1.0",
+  "auth": "github:markldevine",
+  "authors": [
+    "Mark Devine <mark@markdevine.com>"
+  ],
+  "depends": [ ],
+  "description": "Hypervisor-VMware-vSphere REST API Client",
+  "license": "Artistic-2.0",
+  "meta-version": 0,
+  "name": "Hypervisor::VMware::vSphere",
+  "perl": "6.d",
+  "provides": {
+    "": "lib/",
+    "": "lib/"
+  },
+  "resources": [ ],
+  "source-url": "https://github.com/markldevine/raku-Hypervisor-VMware-vSphere.git",
+  "tags": [
+    "Async"
+  ]
+}
