@@ -73,6 +73,6 @@
   "resources": [ ],
   "source-url": "https://github.com/markldevine/raku-Hypervisor-VMware-vSphere.git",
   "tags": [
-    "Async"
+    "vSphere", "REST"
   ]
 }
