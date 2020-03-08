@@ -1,5 +1,4 @@
 {
-  "api": "0.1.0",
   "auth": "github:markldevine",
   "authors": [
     "Mark Devine <mark@markdevine.com>"
@@ -74,5 +73,6 @@
   "source-url": "https://github.com/markldevine/raku-Hypervisor-VMware-vSphere.git",
   "tags": [
     "vSphere", "REST"
-  ]
+  ],
+  "version": "0.1.0"
 }
