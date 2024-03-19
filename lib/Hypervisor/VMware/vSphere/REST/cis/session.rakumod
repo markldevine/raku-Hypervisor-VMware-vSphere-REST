@@ -46,7 +46,7 @@ submethod TWEAK {
 method !get-cache-entry (Str:D $uri-str) {
 #   say self.^name ~ '::!' ~ &?ROUTINE.name;
     my URI $uri    .= new($uri-str);
-    my @dirs        = $uri.path.split('/');
+    my @dirs        = $uri.path.Str.split('/');
     my $child       = @dirs.pop;
     my $parent      = @dirs.pop;
     my $base        = $Cache-Dir ~ '/' ~ $*USER ~ '/' ~ $uri.host ~ @dirs.join('/') ~ '/' ~ $parent;
@@ -88,7 +88,6 @@ method fetch (Str:D $uri-str --> Hash:D) {
     self.init unless $!ua.DEFINITE;
     my %headers;
     %headers<vmware-api-session-id> = self.vsphere-api-session-id;
-say $cache-entry.uri;
     my $response    = self.ua.get($cache-entry.uri, |%headers);
     unless $response.is-success {
         self.delete;
@@ -127,7 +126,7 @@ method init () {
 
 ### POST https://{server}/rest/com/vmware/cis/session
 method create () {
-#   say self.^name ~ '::' ~ &?ROUTINE.name;
+    say self.^name ~ '::' ~ &?ROUTINE.name;
     $!ua.auth($!auth-login, KHPH.new(:stash-path(self!password-stash-path)).expose);
     my URI $uri .= new('https://' ~ $!vcenter ~ '/rest/com/vmware/cis/session');
     my %header;
