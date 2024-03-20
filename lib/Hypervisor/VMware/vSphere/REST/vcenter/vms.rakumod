@@ -298,20 +298,20 @@ method dump (Str :$name) {
     }
 }
 
-### POST https://{server}/rest/vcenter/vm/{vm}
+### POST https://{server}/api/vcenter/vm/{vm}
 method !create (Str:D $vm is required) { note self.^name ~ '::' ~ &?ROUTINE.name ~ ': Not yet implemented'; }
 
-### DELETE https://{server}/rest/vcenter/vm/{vm}
+### DELETE https://{server}/api/vcenter/vm/{vm}
 method !delete (Str:D $vm is required) { note self.^name ~ '::' ~ &?ROUTINE.name ~ ': Not yet implemented'; }
 
-### GET https://{server}/rest/vcenter/vm/{vm}
+### GET https://{server}/api/vcenter/vm/{vm}
 method !get (Str:D $identifier is required) {
     #say self.^name ~ '::!' ~ &?ROUTINE.name;
     my $name = %identifier-to-name{$identifier};
     my %content;
     {
         CATCH { default { say self.^name ~ '::!' ~ &?ROUTINE.name ~ '(' ~ $name ~ '[' ~ $identifier ~ ']): ' ~ .Str; die; } }
-        %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/vm/' ~ $identifier);
+        %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm/' ~ $identifier);
     }
 ### boot_devices
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device @boot-devices;
@@ -688,10 +688,10 @@ method !get (Str:D $identifier is required) {
 
 }
 
-### GET https://{server}/rest/vcenter/vm
+### GET https://{server}/api/vcenter/vm
 method !list () {
     #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/vm');
+    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm');
     for %content<value>.list -> $v {
         my $name        = $v<name>;
         my $identifier  = $v<vm>;
