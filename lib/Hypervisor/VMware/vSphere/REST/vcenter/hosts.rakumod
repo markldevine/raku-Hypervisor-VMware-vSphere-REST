@@ -19,6 +19,11 @@ method list () {
     return %!hosts.keys.sort;
 }
 
+method children () {
+    self!list unless self.listed;
+    return %!hosts.values;
+}
+
 method dump (Str :$name) {
     my @names = self.list;
     @names = ( $name ) with $name;
@@ -37,7 +42,7 @@ method !disconnect (Str:D $identifier is required) { note self.^name ~ '::' ~ &?
 
 ### GET https://{server}/rest/vcenter/host
 method !list () {
-#say self.^name ~ '::' ~ &?ROUTINE.name;
+#   say self.^name ~ '::' ~ &?ROUTINE.name;
     my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/host');
     for %content<value>.list -> %v {
         my $name        = %v<name>;

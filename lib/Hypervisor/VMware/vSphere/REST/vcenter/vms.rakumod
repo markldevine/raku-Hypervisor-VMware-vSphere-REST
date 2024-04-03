@@ -2,7 +2,11 @@ unit    class Hypervisor::VMware::vSphere::REST::vcenter::vms:api<0.1.0>:auth<Ma
 
 use     URI;
 
+#   Session
 use     Hypervisor::VMware::vSphere::REST::cis::session;
+#   Symbol Imports
+use     Hypervisor::VMware::vSphere::REST::vcenter::hosts::host;
+#   Data structure
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device;
@@ -36,7 +40,6 @@ use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::seria
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port::backing;
 
 has     Hypervisor::VMware::vSphere::REST::cis::session:D $.session is required;
-
 has     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm %.vms;
 
 has     Bool $.listed is rw = False;
@@ -58,8 +61,14 @@ method query (Str:D $identifier is required) {
     die 'Unknown vm identifier: ' ~ $identifier;
 }
 
-method list () {
+multi method list () {
     self!list unless self.listed;
+    return %!vms.keys.sort;
+}
+
+multi method list (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
+    say self.^name ~ '::' ~ &?ROUTINE.name;
+    self!list-by-host(:$host-object);
     return %!vms.keys.sort;
 }
 
@@ -691,7 +700,7 @@ method !get (Str:D $identifier is required) {
 ### GET https://{server}/api/vcenter/vm
 method !list () {
     #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm');
+    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/vm');
     for %content<value>.list -> $v {
         my $name        = $v<name>;
         my $identifier  = $v<vm>;
@@ -705,6 +714,25 @@ method !list () {
         );
     }
     self.listed = True;
+}
+
+### GET https://{server}/api/vcenter/vm?filter.hosts={$host}
+method !list-by-host (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
+    say self.^name ~ '::' ~ &?ROUTINE.name;
+    my $query   = { 'filter.hosts' => $host-object.name };
+    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/vm', :$query);
+    for %content<value>.list -> $v {
+        my $name        = $v<name>;
+        my $identifier  = $v<vm>;
+        %identifier-to-name{$identifier} = $name;
+        %!vms{$name} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm.new(
+            :cpu-count($v<cpu_count>:exists                                     ?? $v<cpu_count>                                !! Nil),
+            :$identifier,
+            :memory-size-MiB($v<memory_size_MiB>:exists                         ?? $v<memory_size_MiB>                          !! Nil),
+            :$name,
+            :power-state($v<power_state>),
+        );
+    }
 }
 
 =finish

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+PASSWD=`/home/mdevine/github.com/raku-Hypervisor-VMware-vSphere-REST/example/pstash.raku --stash-path=/home/mdevine/passwd/A028441.khph`
+export basepw=$(echo -n "A028441:${PASSWD}" | base64)
+#export token=$(curl -k -X POST -H "Authorization: Basic ${basepw}" https://ctvcenterpv.wmata.local/api/session/ | tr -d '"')
+export token=$(curl -k -X POST -H "Authorization: Basic ${basepw}" https://ctvcenterpv.wmata.local/rest/com/vmware/cis/session/ | tr -d '"' | awk -F: '{print $2}' | sed 's/}//')
+echo $token
+#curl -k -X GET -H "vmware-api-session-id: ${token}" "https://ctvcenterpv.wmata.local/api/vcenter/vm" -H "Content-Type: application/json" -d '{ "filter.hosts": "ctvpesxi53p.wmata.local" }'
+curl -k -X GET -H "vmware-api-session-id: ${token}" "https://ctvcenterpv.wmata.local/rest/vcenter/vm" -H "Content-Type: application/json" -d '{ "filter.hosts": "ctvpesxi53p.wmata.local" }'
