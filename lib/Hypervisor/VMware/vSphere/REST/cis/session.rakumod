@@ -64,9 +64,6 @@ method !get-cache-entry (Str:D $uri-str) {
     mkdir($base)    unless $base.IO.e;
     chmod(0o700, $base) unless ~$base.IO.mode == 700;
 
-#   /rest/vcenter/cluster                                                       ->  /rest/vcenter/cluster.json
-#   /rest/vcenter/cluster/domain-c1091      ??  /rest/vcenter/cluster.json      ->  /rest/vcenter/cluster/domain-c1091.json
-
     my $parent-json = $base ~ '.json';
     my $json-path   = $base ~ '/' ~ $child ~ '.json';
 
@@ -92,8 +89,8 @@ method !get-cache-entry (Str:D $uri-str) {
     );
 }
 
-method fetch (Str:D $uri-str, :$query --> Hash:D) {
-    say self.^name ~ '::' ~ &?ROUTINE.name;
+method fetch (Str:D $uri-str, :$query --> Array:D) {
+#   say self.^name ~ '::' ~ &?ROUTINE.name;
     my $cache-entry = self!get-cache-entry($uri-str);
     return from-json(slurp($cache-entry.json-path)) if self.use-cache && $cache-entry.valid;
     self!get-vmware-api-session-id;
@@ -123,14 +120,14 @@ method fetch (Str:D $uri-str, :$query --> Hash:D) {
 }
 
 method !password-stash-path () {
-    return(self.root-stash-path ~ '/.credentials' ~ '/cis/session/' ~ self.vcenter ~ '/' ~ self.auth-login ~ '/' ~ $*USER ~ '/' ~ 'password.khph');
+    return(self.root-stash-path ~ '/.credentials' ~ '/api/session/' ~ self.vcenter ~ '/' ~ self.auth-login ~ '/' ~ $*USER ~ '/' ~ 'password.khph');
 }
 
 method !session-token-stash-path () {
-    return(self.root-stash-path ~ '/.credentials' ~ '/cis/session/' ~ self.vcenter ~ '/' ~ self.auth-login ~ '/' ~ $*USER ~ '/' ~ 'session-token.khph');
+    return(self.root-stash-path ~ '/.credentials' ~ '/api/session/' ~ self.vcenter ~ '/' ~ self.auth-login ~ '/' ~ $*USER ~ '/' ~ 'session-token.khph');
 }
 
-### POST https://{server}/rest/com/vmware/cis/session
+### POST https://{server}/api/session
 method !get-vmware-api-session-id () {
 #   say self.^name ~ '::' ~ &?ROUTINE.name;
     $!vmware-api-session-id = Nil;
@@ -142,16 +139,15 @@ method !get-vmware-api-session-id () {
             exit 500;
         }
     }
-#   my $response    = await self.http-client.post: 'https://' ~ $!vcenter ~ '/api/session';
-    my $response    = await self.http-client.post: 'https://' ~ $!vcenter ~ '/rest/com/vmware/cis/session';
-    my $body = await $response.body;
-    my $vmware-api-session-id   = $body<value>;
+    my $response    = await self.http-client.post: 'https://' ~ $!vcenter ~ '/api/session';
+    my $vmware-api-session-id = await $response.body;
     die self.^name ~ '::' ~ &?ROUTINE.name ~ ': Unable to find vmware-api-session-id in response headers' unless $vmware-api-session-id;
     $!vmware-api-session-id  = $vmware-api-session-id;
     $ = KHPH.new(:secret($!vmware-api-session-id), :stash-path(self!session-token-stash-path));
     return self.vmware-api-session-id;
 }
 
+#%%%    < v7
 ### POST https://{server}/rest/com/vmware/cis/session?~action=get
 #method get () {
 ##   say self.^name ~ '::' ~ &?ROUTINE.name;

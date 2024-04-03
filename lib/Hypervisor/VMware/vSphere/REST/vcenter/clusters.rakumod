@@ -44,22 +44,22 @@ method dump (Str :$name) {
     }
 }
 
-### GET https://{server}/rest/vcenter/cluster/{cluster}
+### GET https://{server}/api/vcenter/cluster/{cluster}
 method !get (Str:D $identifier is required) {
 #   say self.^name ~ '::!' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/cluster/' ~ $identifier);
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/cluster/' ~ $identifier);
     my $name = %identifier-to-name{$identifier};
-    for %content<value> -> %v {
+    for @content -> %v {
         self.cluster($name).resource-pool = %v<resource_pool> if %v<resource_pool>:exists;
     }
     self.cluster($name).queried = True;
 }
 
-### GET https://{server}/rest/vcenter/cluster
+### GET https://{server}/api/vcenter/cluster
 method !list () {
 #   say self.^name ~ '::!' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/cluster');
-    for %content<value>.list -> %v {
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/cluster');
+    for @content -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<cluster>;
         %identifier-to-name{$identifier} = $name;

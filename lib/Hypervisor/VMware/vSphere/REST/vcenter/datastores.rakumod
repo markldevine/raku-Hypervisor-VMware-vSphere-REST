@@ -46,12 +46,12 @@ method dump (Str :$name) {
     }
 }
 
-### GET https://{server}/rest/vcenter/datastore/{datastore}
+### GET https://{server}/api/vcenter/datastore/{datastore}
 method !get (Str:D $identifier is required) {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/datastore/' ~ $identifier);
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/datastore/' ~ $identifier);
     my $name = %identifier-to-name{$identifier};
-    for %content<value> -> %v {
+    for @content -> %v {
         self.datastore($name).accessible                    = %v<accessible>                    if %v<accessible>:exists;
         self.datastore($name).multiple-host-access          = %v<multiple_host_access>          if %v<multiple_host_access>:exists;
         self.datastore($name).thin-provisioning-supported   = %v<thin_provisioning_supported>   if %v<thin_provisioning_supported>:exists;
@@ -59,11 +59,11 @@ method !get (Str:D $identifier is required) {
     self.datastore($name).queried = True;
 }
 
-### GET https://{server}/rest/vcenter/datastore
+### GET https://{server}/api/vcenter/datastore
 method !list () {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/datastore');
-    for %content<value>.list -> %v {
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/datastore');
+    for @content -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<datastore>;
         %identifier-to-name{$identifier} = $name;

@@ -12,7 +12,7 @@ use Hypervisor::VMware::vSphere::REST::vcenter::resource-pools;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms;
 
 has Str  $.auth-login       is required;
-has Str  $.root-stash-path  = '/var/rakudo/Hypervisor/VMware/vSphere/REST';
+has Str  $.root-stash-path  = $*HOME ~ '/.rakucache/Hypervisor/VMware/vSphere/REST';
 has Str  $.vcenter          is required;
 has Bool $.use-cache        is rw = False;
 

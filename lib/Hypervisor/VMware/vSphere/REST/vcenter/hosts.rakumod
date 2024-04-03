@@ -1,5 +1,7 @@
 unit    class Hypervisor::VMware::vSphere::REST::vcenter::hosts:api<0.1.0>:auth<Mark Devine (mark@markdevine.com)>;
 
+use Data::Dump::Tree;
+
 use     Hypervisor::VMware::vSphere::REST::cis::session;
 use     Hypervisor::VMware::vSphere::REST::vcenter::hosts::host;
 
@@ -16,17 +18,17 @@ method host (Str:D $name is required) {
 
 method list () {
     self!list unless self.listed;
-    return %!hosts.keys.sort;
-}
-
-method children () {
-    self!list unless self.listed;
     return %!hosts.values;
 }
 
+method names () {
+    self!list unless self.listed;
+    return %!hosts.keys.sort;
+}
+
 method dump (Str :$name) {
-    my @names = self.list;
-    @names = ( $name ) with $name;
+    my @names = self.names;
+    @names[0] = $name with $name;
     for @names -> $name {
         say self.host($name).name;
         say "\t" ~ 'host identifier  = ' ~ self.host($name).identifier;
@@ -40,11 +42,11 @@ method !create (Str:D $identifier is required) { note self.^name ~ '::' ~ &?ROUT
 method !delete (Str:D $identifier is required) { note self.^name ~ '::' ~ &?ROUTINE.name ~ ': Not yet implemented'; }
 method !disconnect (Str:D $identifier is required) { note self.^name ~ '::' ~ &?ROUTINE.name ~ ': Not yet implemented'; }
 
-### GET https://{server}/rest/vcenter/host
+### GET https://{server}/api/vcenter/host
 method !list () {
 #   say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/host');
-    for %content<value>.list -> %v {
+    my $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/host');
+    for $content.list -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<host>;
         %identifier-to-name{$identifier} = $name;

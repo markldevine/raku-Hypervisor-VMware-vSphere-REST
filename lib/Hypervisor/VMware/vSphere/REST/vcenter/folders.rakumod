@@ -29,11 +29,11 @@ method dump (Str :$name) {
     }
 }
 
-### GET https://{server}/rest/vcenter/folder
+### GET https://{server}/api/vcenter/folder
 method !list () {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/folder');
-    for %content<value>.list -> %v {
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/folder');
+    for @content -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<folder>;
         %identifier-to-name{$identifier} = $name;

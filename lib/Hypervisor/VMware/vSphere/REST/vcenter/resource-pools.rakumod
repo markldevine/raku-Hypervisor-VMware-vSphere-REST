@@ -41,22 +41,22 @@ method dump (Str :$name) {
     }
 }
 
-### GET https://{server}/rest/vcenter/resource-pool/{resource_pool}
+### GET https://{server}/api/vcenter/resource-pool/{resource_pool}
 method !get (Str:D $identifier is required) {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/resource-pool/' ~ $identifier);
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/resource-pool/' ~ $identifier);
     my $name = %identifier-to-name{$identifier};
-    for %content<value> -> %v {
+    for @content -> %v {
         self.resource-pool($name).resource-pools = %v<resource_pools>.Array if %v<resource_pools>:exists;
     }
     self.resource-pool($name).queried = True;
 }
 
-### GET https://{server}/rest/vcenter/resource-pool
+### GET https://{server}/api/vcenter/resource-pool
 method !list () {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/resource-pool');
-    for %content<value>.list -> %v {
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/resource-pool');
+    for @content -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<resource_pool>;
         %identifier-to-name{$identifier} = $name;

@@ -47,12 +47,12 @@ method dump (Str :$name) {
 method !create (Str:D $identifier is required) { note self.^name ~ '::' ~ &?ROUTINE.name ~ ': Not yet implemented'; }
 method !delete (Str:D $identifier is required) { note self.^name ~ '::' ~ &?ROUTINE.name ~ ': Not yet implemented'; }
 
-### GET https://{server}/rest/vcenter/datacenter/{datacenter}
+### GET https://{server}/api/vcenter/datacenter/{datacenter}
 method !get (Str:D $identifier is required) {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/datacenter/' ~ $identifier);
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/datacenter/' ~ $identifier);
     my $name = %identifier-to-name{$identifier};
-    for %content<value> -> %v {
+    for @content -> %v {
         self.datacenter($name).datastore-folder = %v<datastore_folder> if %v<datastore_folder>:exists;
         self.datacenter($name).host-folder      = %v<host_folder>      if %v<host_folder>:exists;
         self.datacenter($name).network-folder   = %v<network_folder>   if %v<network_folder>:exists;
@@ -61,11 +61,11 @@ method !get (Str:D $identifier is required) {
     self.datacenter($name).queried = True;
 }
 
-### GET https://{server}/rest/vcenter/datacenter
+### GET https://{server}/api/vcenter/datacenter
 method !list () {
 #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/datacenter');
-    for %content<value>.list -> %v {
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/datacenter');
+    for @content -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<datacenter>;
         %identifier-to-name{$identifier} = $name;

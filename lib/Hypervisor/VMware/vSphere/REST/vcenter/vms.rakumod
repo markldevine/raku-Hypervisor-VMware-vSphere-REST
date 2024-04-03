@@ -1,6 +1,8 @@
 unit    class Hypervisor::VMware::vSphere::REST::vcenter::vms:api<0.1.0>:auth<Mark Devine (mark@markdevine.com)>;
 
-use     URI;
+use Data::Dump::Tree;
+
+use     Cro::Uri;
 
 #   Session
 use     Hypervisor::VMware::vSphere::REST::cis::session;
@@ -67,8 +69,8 @@ multi method list () {
 }
 
 multi method list (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
-    say self.^name ~ '::' ~ &?ROUTINE.name;
-    self!list-by-host(:$host-object);
+    say self.^name ~ '::' ~ &?ROUTINE.name ~ ' multi for Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D';
+    self!list-by-host-id(:$host-object);
     return %!vms.keys.sort;
 }
 
@@ -317,14 +319,18 @@ method !delete (Str:D $vm is required) { note self.^name ~ '::' ~ &?ROUTINE.name
 method !get (Str:D $identifier is required) {
     #say self.^name ~ '::!' ~ &?ROUTINE.name;
     my $name = %identifier-to-name{$identifier};
+    my $content;
+    my @content;
     my %content;
     {
         CATCH { default { say self.^name ~ '::!' ~ &?ROUTINE.name ~ '(' ~ $name ~ '[' ~ $identifier ~ ']): ' ~ .Str; die; } }
-        %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm/' ~ $identifier);
+        $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm/' ~ $identifier);
+ddt $content;
+die;
     }
 ### boot_devices
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device @boot-devices;
-    for %content<value><boot_devices>.list -> %boot-device {
+    for @content<boot_devices>.list -> %boot-device {
         @boot-devices.append: Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device.new(
             :disks(%boot-device<disks>:exists
                 ?? %boot-device<disks>
@@ -339,7 +345,7 @@ method !get (Str:D $identifier is required) {
     }
 ### cdroms
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom %cdroms;
-    for %content<value><cdroms>.list -> %anonymous {
+    for @content<value><cdroms>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::backing $backing .= new(
@@ -390,7 +396,7 @@ method !get (Str:D $identifier is required) {
     }
 ### disks
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk %disks;
-    for %content<value><disks>.list -> %anonymous {
+    for @content<value><disks>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::backing $backing .= new(
@@ -610,7 +616,7 @@ method !get (Str:D $identifier is required) {
                 !! Nil
             ),
             :network-location(%value<backing><network_location>:exists
-                ?? URI.new(%value<backing><network_location>)
+                ?? Cro::Uri.new(%value<backing><network_location>)
                 !! Nil
             ),
             :no-rx-loss(%value<backing><no_rx_loss>:exists
@@ -622,7 +628,7 @@ method !get (Str:D $identifier is required) {
                 !! Nil
             ),
             :proxy(%value<backing><proxy>:exists
-                ?? URI.new(%value<backing><proxy>)
+                ?? Cro::Uri.new(%value<backing><proxy>)
                 !! Nil
             ),
             :type(%value<backing><type>),
@@ -699,9 +705,9 @@ method !get (Str:D $identifier is required) {
 
 ### GET https://{server}/api/vcenter/vm
 method !list () {
-    #say self.^name ~ '::' ~ &?ROUTINE.name;
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/vm');
-    for %content<value>.list -> $v {
+#   say self.^name ~ '::' ~ &?ROUTINE.name;
+    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm');
+    for @content -> $v {
         my $name        = $v<name>;
         my $identifier  = $v<vm>;
         %identifier-to-name{$identifier} = $name;
@@ -716,21 +722,22 @@ method !list () {
     self.listed = True;
 }
 
-### GET https://{server}/api/vcenter/vm?filter.hosts={$host}
-method !list-by-host (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
-    say self.^name ~ '::' ~ &?ROUTINE.name;
-    my $query   = { 'filter.hosts' => $host-object.name };
-    my %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/rest/vcenter/vm', :$query);
-    for %content<value>.list -> $v {
-        my $name        = $v<name>;
-        my $identifier  = $v<vm>;
+### GET https://{server}/api/vcenter/vm?filter.hosts={$host-id}
+method !list-by-host-id (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
+#   say self.^name ~ '::' ~ &?ROUTINE.name;
+    my $query   = { 'hosts' => $host-object.identifier };
+ddt $query;
+    my $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm', :$query);
+    for $content.list -> %v {
+        my $name        = %v<name>;
+        my $identifier  = %v<vm>;
         %identifier-to-name{$identifier} = $name;
         %!vms{$name} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm.new(
-            :cpu-count($v<cpu_count>:exists                                     ?? $v<cpu_count>                                !! Nil),
+            :cpu-count(%v<cpu_count>:exists                                     ?? %v<cpu_count>                                !! Nil),
             :$identifier,
-            :memory-size-MiB($v<memory_size_MiB>:exists                         ?? $v<memory_size_MiB>                          !! Nil),
+            :memory-size-MiB(%v<memory_size_MiB>:exists                         ?? %v<memory_size_MiB>                          !! Nil),
             :$name,
-            :power-state($v<power_state>),
+            :power-state(%v<power_state>),
         );
     }
 }
