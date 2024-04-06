@@ -69,7 +69,7 @@ multi method list () {
 }
 
 multi method list (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
-    say self.^name ~ '::' ~ &?ROUTINE.name ~ ' multi for Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D';
+#   say self.^name ~ '::' ~ &?ROUTINE.name ~ ' multi for Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D';
     self!list-by-host-id(:$host-object);
     return %!vms.keys.sort;
 }
@@ -317,163 +317,126 @@ method !delete (Str:D $vm is required) { note self.^name ~ '::' ~ &?ROUTINE.name
 
 ### GET https://{server}/api/vcenter/vm/{vm}
 method !get (Str:D $identifier is required) {
-    #say self.^name ~ '::!' ~ &?ROUTINE.name;
+    say self.^name ~ '::!' ~ &?ROUTINE.name;
     my $name = %identifier-to-name{$identifier};
-    my $content;
-    my @content;
-    my %content;
+put 'vm = <' ~ $name ~ '>';
     {
         CATCH { default { say self.^name ~ '::!' ~ &?ROUTINE.name ~ '(' ~ $name ~ '[' ~ $identifier ~ ']): ' ~ .Str; die; } }
-        $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm/' ~ $identifier);
-ddt $content;
-die;
+        %content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm/' ~ $identifier);
     }
+### boot
+    %!vms{$name}.boot           = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot.new(
+        :delay(%content<boot><delay>),
+        :efi-legacy-boot(%content<boot><efi_legacy_boot>:exists     ?? %content<boot><efi_legacy_boot>  !! Nil),
+        :enter-setup-mode(%content<boot><enter_setup_mode>),
+        :network-protocol(%content<boot><network-protocol>:exists   ?? %content<boot><network-protocol> !! Nil),
+        :retry(%content<boot><retry>),
+        :retry-delay(%content<boot><retry_delay>),
+        :type(%content<boot><type>),
+    );
 ### boot_devices
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device @boot-devices;
-    for @content<boot_devices>.list -> %boot-device {
-        @boot-devices.append: Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device.new(
-            :disks(%boot-device<disks>:exists
-                ?? %boot-device<disks>
-                !! Array.new()
-            ),
-            :nic(%boot-device<nic>:exists
-                ?? %boot-device<nic>
-                !! Nil
-            ),
+    for %content<boot_devices>.list -> %boot-device {
+        @boot-devices.push: Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device.new(
+            :disks(%boot-device<disks>:exists   ?? %boot-device<disks>  !! Array.new()),
+            :nic(%boot-device<nic>:exists       ?? %boot-device<nic>    !! Nil),
             :type(%boot-device<type>),
         );
     }
+    %!vms{$name}.boot-devices   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices.new(:@boot-devices);
 ### cdroms
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom %cdroms;
-    for @content<value><cdroms>.list -> %anonymous {
-        my $key = %anonymous<key>;
-        my %value = %anonymous<value>;
+    for %content<cdroms>.keys -> %cdrom {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::backing $backing .= new(
-            :auto-detect(%value<backing><auto_detect>:exists
-                ?? %value<backing><auto_detect>
-                !! Nil
-            ),
-            :device-access-type(%value<backing><device_access_type>:exists
-                ?? %value<backing><device_access_type>
-                !! Nil
-            ),
-            :host-device(%value<backing><host_device>:exists
-                ?? %value<backing><host_device>
-                !! Nil
-            ),
-            :iso-file(%value<backing><iso_file>:exists
-                ?? %value<backing><iso_file>
-                !! Nil
-            ),
-            :type(%value<backing><type>),
+            :auto-detect(%cdrom<backing><auto_detect>:exists                ?? %cdrom<backing><auto_detect>         !! Nil),
+            :device-access-type(%cdrom<backing><device_access_type>:exists  ?? %cdrom<backing><device_access_type>  !! Nil),
+            :host-device(%cdrom<backing><host_device>:exists                ?? %cdrom<backing><host_device>         !! Nil),
+            :iso-file(%cdrom<backing><iso_file>:exists                      ?? %cdrom<backing><iso_file>            !! Nil),
+            :type(%cdrom<backing><type>),
         );
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::ide $ide;
-        $ide = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::ide.new(
-            :master(%value<ide><master>),
-            :primary(%value<ide><primary>),
-        ) if %value<ide>:exists;
+        $ide .= new(
+            :master(%cdrom<ide><master>),
+            :primary(%cdrom<ide><primary>),
+        ) if %cdrom<ide>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::sata $sata;
-        $sata = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::sata.new(
-            :bus(%value<sata><bus>),
-            :unit(%value<sata><unit>),
-        ) if %value<sata>:exists;
-        %cdroms{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom.new(
-            :allow-guest-control(%value<allow_guest_control>),
+        $sata .= new(
+            :bus(%cdrom<sata><bus>),
+            :unit(%cdrom<sata><unit>),
+        ) if %cdrom<sata>:exists;
+        %cdroms{$cdrom} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom.new(
+            :allow-guest-control(%cdrom<allow_guest_control>),
             :$backing,
-            :ide($ide.DEFINITE
-                ?? $ide
-                !! Nil
-            ),
-            :label(%value<label>),
-            :sata($sata.DEFINITE
-                ?? $sata
-                !! Nil
-            ),
-            :start-connected(%value<start_connected>),
-            :state(%value<state>),
-            :type(%value<type>),
+            :$ide,
+            :label(%cdrom<label>),
+            :$sata,
+            :start-connected(%cdrom<start_connected>),
+            :state(%cdrom<state>),
+            :type(%cdrom<type>),
         );
     }
+    %!vms{$name}.cdroms         = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms.new(:%cdroms);
+### cpu
+    %!vms{$name}.cpu            = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cpu.new(
+        :cores-per-socket(%content<cpu><cores_per_socket>),
+        :count(%content<cpu><count>),
+        :hot-add-enabled(%content<cpu><hot_add_enabled>),
+        :hot-remove-enabled(%content<cpu><hot_remove_enabled>),
+    );
 ### disks
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk %disks;
-    for @content<value><disks>.list -> %anonymous {
-        my $key = %anonymous<key>;
-        my %value = %anonymous<value>;
+    for %content<disks>.keys -> $disk {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::backing $backing .= new(
-            :type(%value<backing><type>),
-            :vmdk-file(%value<backing><vmdk_file>:exists
-                ?? %value<backing><vmdk_file>
-                !! Nil
-            ),
+            :type(%content<disks>{$disk}<backing><type>),
+            :vmdk-file(%content<disks>{$disk}<backing><vmdk_file>:exists    ?? %disk<backing><vmdk_file>    !! Nil),
         );
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::ide $ide;
         $ide = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::ide.new(
-            :master(%value<ide><master>),
-            :primary(%value<ide><primary>),
-        ) if %value<ide>:exists;
+            :master(%content<disks>{$disk}<ide><master>),
+            :primary(%content<disks>{$disk}<ide><primary>),
+        ) if %content<disks>{$disk}<ide>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::sata $sata;
         $sata = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::sata.new(
-            :bus(%value<sata><bus>),
-            :unit(%value<sata><unit>),
-        ) if %value<sata>:exists;
+            :bus(%content<disks>{$disk}<sata><bus>),
+            :unit(%content<disks>{$disk}<sata><unit>),
+        ) if %content<disks>{$disk}<sata>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::scsi $scsi;
         $scsi = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::scsi.new(
-            :bus(%value<scsi><bus>),
-            :unit(%value<scsi><unit>),
-        ) if %value<scsi>:exists;
-        %disks{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk.new(
+            :bus(%content<disks>{$disk}<scsi><bus>),
+            :unit(%content<disks>{$disk}<scsi><unit>),
+        ) if %content<disks>{$disk}<scsi>:exists;
+        %disks{$disk} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk.new(
             :$backing,
-            :capacity(%value<capacity>:exists
-                ?? %value<capacity>
-                !! Nil
-            ),
-            :ide($ide.DEFINITE
-                ?? $ide
-                !! Nil
-            ),
-            :label(%value<label>),
-            :sata($sata.DEFINITE
-                ?? $sata
-                !! Nil
-            ),
-            :scsi($scsi.DEFINITE
-                ?? $scsi
-                !! Nil
-            ),
-            :type(%value<type>),
+            :capacity(%content<disks>{$disk}<capacity>),
+            :$ide,
+            :label(%content<disks>{$disk}<label>),
+            :$sata,
+            :$scsi,
+            :type(%content<disks>{$disk}<type>),
         );
     }
+    %!vms{$name}.disks          = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks.new(:%disks);
 ### floppies
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy %floppies;
-    for %content<value><floppies>.list -> %anonymous {
-        my $key = %anonymous<key>;
-        my %value = %anonymous<value>;
+    for %content<floppies>.keys -> $floppy {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy::backing $backing .= new(
-            :auto-detect(%value<backing><auto_detect>:exists
-                ?? %value<backing><auto_detect>
-                !! Nil
-            ),
-            :host-device(%value<backing><host_device>:exists
-                ?? %value<backing><host_device>
-                !! Nil
-            ),
-            :image-file(%value<backing><image_file>:exists
-                ?? %value<backing><image_file>
-                !! Nil
-            ),
-            :type(%value<backing><type>),
+            :auto-detect(%content<floppies>{$floppy}<backing><auto_detect>:exists   ?? %content<floppies>{$floppy}<backing><auto_detect>    !! Nil),
+            :host-device(%content<floppies>{$floppy}<backing><host_device>:exists   ?? %content<floppies>{$floppy}<backing><host_device>    !! Nil),
+            :image-file(%content<floppies>{$floppy}<backing><image_file>:exists     ?? %content<floppies>{$floppy}<backing><image_file>     !! Nil),
+            :type(%content<floppies>{$floppy}<backing><type>),
         );
-        %floppies{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy.new(
-            :allow-guest-control(%value<allow_guest_control>),
+        %floppies{$floppy} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy.new(
+            :allow-guest-control(%content<floppies>{$floppy}<allow_guest_control>),
             :$backing,
-            :label(%value<label>),
-            :start-connected(%value<start_connected>),
-            :state(%value<state>),
+            :label(%content<floppies>{$floppy}<label>),
+            :start-connected(%content<floppies>{$floppy}<start_connected>),
+            :state(%content<floppies>{$floppy}<state>),
         );
     }
+    %!vms{$name}.floppies       = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies.new(:%floppies);
 ### nics
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic %nics;
-    for %content<value><nics>.list -> %anonymous {
+    for %content<nics>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic::backing $backing .= new(
@@ -536,7 +499,7 @@ die;
     }
 ### parallel ports
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port %parallel-ports;
-    for %content<value><parallel_ports>.list -> %anonymous {
+    for %content<parallel_ports>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port::backing $backing .= new(
@@ -564,14 +527,14 @@ die;
     }
 ### sata adapters
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters::sata-adapter %sata-adapters;
-    for %content<value><sata_adapters>.list -> %anonymous {
+    for %content<sata_adapters>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         %sata-adapters{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters::sata-adapter.new(
             :bus(%value<bus>),
             :label(%value<label>),
-            :pci-slot-number(%content<value><pci_slot_number>:exists
-                ?? %content<value><pci_slot_number>
+            :pci-slot-number(%content<pci_slot_number>:exists
+                ?? %content<pci_slot_number>
                 !! Nil
             ),
             :type(%value<type>),
@@ -579,7 +542,7 @@ die;
     }
 ### scsi adapters
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters::scsi-adapter %scsi-adapters;
-    for %content<value><scsi_adapters>.list -> %anonymous {
+    for %content<scsi_adapters>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters::scsi-adapter::scsi $scsi .= new(
@@ -599,7 +562,7 @@ die;
     }
 ### serial ports
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port %serial-ports;
-    for %content<value><serial_ports>.list -> %anonymous {
+    for %content<serial_ports>.list -> %anonymous {
         my $key = %anonymous<key>;
         my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port::backing $backing .= new(
@@ -643,56 +606,31 @@ die;
         );
     }
 ### Assemble
-    %!vms{$name}.boot           = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot.new(
-            :delay(%content<value><boot><delay>),
-            :efi-legacy-boot(%content<value><boot><efi_legacy_boot>:exists
-                ?? %content<value><boot><efi_legacy_boot>
-                !! Nil
-            ),
-            :enter-setup-mode(%content<value><boot><enter_setup_mode>),
-            :network-protocol(%content<value><boot><network-protocol>:exists
-                ?? %content<value><boot><network-protocol>
-                !! Nil
-            ),
-            :retry(%content<value><boot><retry>),
-            :retry-delay(%content<value><boot><retry_delay>),
-            :type(%content<value><boot><type>),
-    );
-    %!vms{$name}.boot-devices   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices.new(:@boot-devices);
-    %!vms{$name}.cdroms         = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms.new(:%cdroms);
-    %!vms{$name}.cpu            = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cpu.new(
-        :cores-per-socket(%content<value><cpu><cores_per_socket>),
-        :count(%content<value><cpu><count>),
-        :hot-add-enabled(%content<value><cpu><hot_add_enabled>),
-        :hot-remove-enabled(%content<value><cpu><hot_remove_enabled>),
-    );
-    %!vms{$name}.disks          = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks.new(:%disks);
-    %!vms{$name}.floppies       = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies.new(:%floppies);
-    %!vms{$name}.guest-OS       = %content<value><guest_OS>;
+    %!vms{$name}.guest-OS       = %content<guest_OS>;
     %!vms{$name}.hardware       = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::hardware.new(
-        :upgrade-error(%content<value><hardware><upgrade_error>:exists
-            ?? %content<value><hardware><upgrade_error>
+        :upgrade-error(%content<hardware><upgrade_error>:exists
+            ?? %content<hardware><upgrade_error>
             !! Hash.new
         ),
-        :upgrade-policy(%content<value><hardware><upgrade_policy>),
-        :upgrade-status(%content<value><hardware><upgrade_status>),
-        :upgrade-version(%content<value><hardware><upgrade_version>:exists
-            ?? %content<value><hardware><upgrade_version>
+        :upgrade-policy(%content<hardware><upgrade_policy>),
+        :upgrade-status(%content<hardware><upgrade_status>),
+        :upgrade-version(%content<hardware><upgrade_version>:exists
+            ?? %content<hardware><upgrade_version>
             !! Nil
         ),
-        :version(%content<value><hardware><version>),
+        :version(%content<hardware><version>),
     );
     %!vms{$name}.memory         = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::memory.new(
-        :hot-add-enabled(%content<value><memory><hot_add_enabled>),
-        :hot-add-increment-size-MiB(%content<value><memory><hot_add_increment_size_MiB>:exists
-            ?? %content<value><memory><hot_add_increment_size_MiB>
+        :hot-add-enabled(%content<memory><hot_add_enabled>),
+        :hot-add-increment-size-MiB(%content<memory><hot_add_increment_size_MiB>:exists
+            ?? %content<memory><hot_add_increment_size_MiB>
             !! Nil
         ),
-        :hot-add-limit-MiB(%content<value><memory><hot_add_limit_MiB>:exists
-            ?? %content<value><memory><hot_add_limit_MiB>
+        :hot-add-limit-MiB(%content<memory><hot_add_limit_MiB>:exists
+            ?? %content<memory><hot_add_limit_MiB>
             !! Nil
         ),
-        :size-MiB(%content<value><memory><size_MiB>),
+        :size-MiB(%content<memory><size_MiB>),
     );
     %!vms{$name}.nics           = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics.new(:%nics);
     %!vms{$name}.parallel-ports = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports.new(:%parallel-ports);
@@ -706,8 +644,8 @@ die;
 ### GET https://{server}/api/vcenter/vm
 method !list () {
 #   say self.^name ~ '::' ~ &?ROUTINE.name;
-    my @content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm');
-    for @content -> $v {
+    my $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm');
+    for $content.list -> $v {
         my $name        = $v<name>;
         my $identifier  = $v<vm>;
         %identifier-to-name{$identifier} = $name;
@@ -725,9 +663,8 @@ method !list () {
 ### GET https://{server}/api/vcenter/vm?filter.hosts={$host-id}
 method !list-by-host-id (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$host-object) {
 #   say self.^name ~ '::' ~ &?ROUTINE.name;
-    my $query   = { 'hosts' => $host-object.identifier };
-ddt $query;
-    my $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm', :$query);
+    my %query   = 'hosts' => $host-object.identifier;
+    my $content = $!session.fetch('https://' ~ $!session.vcenter ~ '/api/vcenter/vm', :%query);
     for $content.list -> %v {
         my $name        = %v<name>;
         my $identifier  = %v<vm>;

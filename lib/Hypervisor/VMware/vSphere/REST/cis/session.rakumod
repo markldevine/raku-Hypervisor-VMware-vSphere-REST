@@ -89,7 +89,7 @@ method !get-cache-entry (Str:D $uri-str) {
     );
 }
 
-method fetch (Str:D $uri-str, :$query --> Array:D) {
+method fetch (Str:D $uri-str, :%query) {
 #   say self.^name ~ '::' ~ &?ROUTINE.name;
     my $cache-entry = self!get-cache-entry($uri-str);
     return from-json(slurp($cache-entry.json-path)) if self.use-cache && $cache-entry.valid;
@@ -107,8 +107,8 @@ method fetch (Str:D $uri-str, :$query --> Array:D) {
             }
             default                             { die $_; }
         }
-        if $query.elems {
-            $response = await self.http-client.get($uri-str, headers => [ vmware-api-session-id => self.vmware-api-session-id ], :$query);
+        if %query.elems {
+            $response = await self.http-client.get($uri-str, headers => [ vmware-api-session-id => self.vmware-api-session-id ], :%query);
         }
         else {
             $response = await self.http-client.get($uri-str, headers => [ vmware-api-session-id => self.vmware-api-session-id ]);
