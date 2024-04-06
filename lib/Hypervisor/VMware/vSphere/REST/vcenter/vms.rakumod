@@ -321,6 +321,7 @@ method !delete (Str:D $vm is required) { note self.^name ~ '::' ~ &?ROUTINE.name
 method !get (Str:D $identifier is required) {
 #   https://vdc-download.vmware.com/vmwb-repository/dcr-public/c2c7244e-817b-40d8-98f3-6c2ad5db56d6/af6d8ff7-1c38-4571-b72a-614ac319a62b/operations/com/vmware/vcenter/vm.get-operation.html
     say self.^name ~ '::!' ~ &?ROUTINE.name;
+    my %content;
     my $name = %identifier-to-name{$identifier};
     {
         CATCH { default { say self.^name ~ '::!' ~ &?ROUTINE.name ~ '(' ~ $name ~ '[' ~ $identifier ~ ']): ' ~ .Str; die; } }
@@ -358,8 +359,8 @@ method !get (Str:D $identifier is required) {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::backing $backing .= new(
             :auto-detect(%content<cdroms>{$cdrom}<backing><auto_detect>:exists                          ?? %content<cdroms>{$cdrom}<backing><auto_detect>                                   !! Nil),
             :device-access-type(%content<cdroms>{$cdrom}<backing><device_access_type>:exists            ?? %content<cdroms>{$cdrom}<backing><device_access_type>                            !! Nil),
-            :host-device(%cdrom<backing><host_device>:exists                                            ?? %content<cdroms>{$cdrom}<backing><host_device>                                   !! Nil),
-            :iso-file(%cdrom<backing><iso_file>:exists                                                  ?? %content<cdroms>{$cdrom}<backing><iso_file>                                      !! Nil),
+            :host-device(%content<cdroms>{$cdrom}<backing><host_device>:exists                          ?? %content<cdroms>{$cdrom}<backing><host_device>                                   !! Nil),
+            :iso-file(%content<cdroms>{$cdrom}<backing><iso_file>:exists                                ?? %content<cdroms>{$cdrom}<backing><iso_file>                                      !! Nil),
             :type(%content<cdroms>{$cdrom}<backing><type>),
         );
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::ide $ide;
@@ -374,7 +375,7 @@ method !get (Str:D $identifier is required) {
             :bus(%content<cdroms>{$cdrom}<sata><bus>),
             :unit(%content<cdroms>{$cdrom}<sata><unit>),
         ) if %content<cdroms>{$cdrom}<sata>:exists;
-        my %cdroms{$cdrom} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom.new(
+        %cdroms{$cdrom} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom.new(
             :allow-guest-control(%content<cdroms>{$cdrom}<allow_guest_control>),
             :$backing,
             :$ide,
@@ -401,7 +402,7 @@ method !get (Str:D $identifier is required) {
     for %content<disks>.keys -> $disk {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::backing $backing .= new(
             :type(%content<disks>{$disk}<backing><type>),
-            :vmdk-file(%content<disks>{$disk}<backing><vmdk_file>:exists                                ?? %disk<backing><vmdk_file>                                                        !! Nil),
+            :vmdk-file(%content<disks>{$disk}<backing><vmdk_file>:exists                                ?? %content<disks>{$disk}<backing><vmdk_file>                                       !! Nil),
         );
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::ide $ide;
         $ide                    = Nil;
@@ -537,7 +538,7 @@ method !get (Str:D $identifier is required) {
     %parallel-ports             = Nil;
     for %content<parallel_ports>.keys -> $parallel-port {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port::backing $backing .= new(
-            :auto-detect(%content<parallel_ports>{$parallel-port}<backing><auto_detect>:exists          ?? %value<backing><auto_detect>                                                     !! Nil),
+            :auto-detect(%content<parallel_ports>{$parallel-port}<backing><auto_detect>:exists          ?? %content<parallel_ports>{$parallel-port}<backing><auto_detect>                   !! Nil),
             :file(%content<parallel_ports>{$parallel-port}<backing><file>:exists                        ?? %content<parallel_ports>{$parallel-port}<backing><file>                          !! Nil),
             :host-device(%content<parallel_ports>{$parallel-port}<backing><host_device>:exists          ?? %content<parallel_ports>{$parallel-port}<backing><host_device>                   !! Nil),
             :type(%content<parallel_ports>{$parallel-port}<backing><type>),
@@ -589,24 +590,24 @@ method !get (Str:D $identifier is required) {
 ### serial ports
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port %serial-ports;
     %serial-ports               = Nil;
-    for %content<serial_ports>.keys -> $serial-ports {
+    for %content<serial_ports>.keys -> $serial-port {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port::backing $backing .= new(
-            :auto-detect(%content<serial_ports>{$serial-ports}<backing><auto_detect>:exists             ?? %content<serial_ports>{$serial-ports}<backing><auto_detect>                     !! Nil),
-            :file(%content<serial_ports>{$serial-ports}<backing><file>:exists                           ?? %content<serial_ports>{$serial-ports}<backing><file>                            !! Nil),
-            :host-device(%content<serial_ports>{$serial-ports}<backing><host_device>:exists             ?? %content<serial_ports>{$serial-ports}<backing><host_device>                     !! Nil),
-            :network-location(%content<serial_ports>{$serial-ports}<backing><network_location>:exists   ?? Cro::Uri.new(%content<serial_ports>{$serial-ports}<backing><network_location>)  !! Nil),
-            :no-rx-loss(%content<serial_ports>{$serial-ports}<backing><no_rx_loss>:exists               ?? %content<serial_ports>{$serial-ports}<backing><no_rx_loss>                      !! Nil),
-            :pipe(%content<serial_ports>{$serial-ports}<backing><pipe>:exists                           ?? %content<serial_ports>{$serial-ports}<backing><pipe>                            !! Nil),
-            :proxy(%content<serial_ports>{$serial-ports}<backing><proxy>:exists                         ?? Cro::Uri.new(%content<serial_ports>{$serial-ports}<backing><proxy>)             !! Nil),
-            :type(%content<serial_ports>{$serial-ports}<backing><type>),
+            :auto-detect(%content<serial_ports>{$serial-port}<backing><auto_detect>:exists              ?? %content<serial_ports>{$serial-port}<backing><auto_detect>                       !! Nil),
+            :file(%content<serial_ports>{$serial-port}<backing><file>:exists                            ?? %content<serial_ports>{$serial-port}<backing><file>                              !! Nil),
+            :host-device(%content<serial_port>{$serial-port}<backing><host_device>:exists               ?? %content<serial_ports>{$serial-port}<backing><host_device>                       !! Nil),
+            :network-location(%content<serial_port>{$serial-port}<backing><network_location>:exists     ?? Cro::Uri.new(%content<serial_ports>{$serial-port}<backing><network_location>)    !! Nil),
+            :no-rx-loss(%content<serial_ports>{$serial-port}<backing><no_rx_loss>:exists                ?? %content<serial_ports>{$serial-port}<backing><no_rx_loss>                        !! Nil),
+            :pipe(%content<serial_ports>{$serial-port}<backing><pipe>:exists                            ?? %content<serial_ports>{$serial-port}<backing><pipe>                              !! Nil),
+            :proxy(%content<serial_ports>{$serial-port}<backing><proxy>:exists                          ?? Cro::Uri.new(%content<serial_ports>{$serial-port}<backing><proxy>)               !! Nil),
+            :type(%content<serial_ports>{$serial-port}<backing><type>),
         );
-        %serial-ports{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port.new(
-            :allow-guest-control(%content<serial_ports>{$serial-ports}<allow_guest_control>),
+        %serial-ports{$serial-port} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port.new(
+            :allow-guest-control(%content<serial_ports>{$serial-port}<allow_guest_control>),
             :$backing,
-            :label(%content<serial_ports>{$serial-ports}<label>),
-            :start-connected(%content<serial_ports>{$serial-ports}<start_connected>),
-            :state(%content<serial_ports>{$serial-ports}<state>),
-            :yield-on-poll(%content<serial_ports>{$serial-ports}<yield_on_poll>),
+            :label(%content<serial_ports>{$serial-port}<label>),
+            :start-connected(%content<serial_ports>{$serial-port}<start_connected>),
+            :state(%content<serial_ports>{$serial-port}<state>),
+            :yield-on-poll(%content<serial_ports>{$serial-port}<yield_on_poll>),
         );
     }
     %!vms{$name}.serial-ports   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports.new(:%serial-ports);

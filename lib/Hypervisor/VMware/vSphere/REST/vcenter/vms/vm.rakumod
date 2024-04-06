@@ -36,7 +36,6 @@ has Bool                                                                $.instan
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::memory         $.memory                is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics           $.nics                  is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports $.parallel-ports        is rw;
-has Str                                                                 $.power-state           is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters  $.sata-adapters         is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters  $.scsi-adapters         is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports   $.serial-ports          is rw;
