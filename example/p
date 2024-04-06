@@ -27,8 +27,9 @@ for $vcenter.hosts.names -> $host-name {
         %vm-names{$vm} = 0;
     }
 }
+
+=finish
+
 for %vm-names.keys.sort -> $vm-name {
     put $vm-name;
 }
-
-=finish
