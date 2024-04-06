@@ -29,8 +29,6 @@ use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::memory;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic::backing;
-use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters;
-use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters::nvme-adapter;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port;
 use     Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port::backing;
@@ -319,7 +317,11 @@ method !delete (Str:D $vm is required) { note self.^name ~ '::' ~ &?ROUTINE.name
 
 ### GET https://{server}/api/vcenter/vm/{vm}
 method !get (Str:D $identifier is required) {
+
+
 #   https://vdc-download.vmware.com/vmwb-repository/dcr-public/c2c7244e-817b-40d8-98f3-6c2ad5db56d6/af6d8ff7-1c38-4571-b72a-614ac319a62b/operations/com/vmware/vcenter/vm.get-operation.html
+
+
     say self.^name ~ '::!' ~ &?ROUTINE.name;
     my $name = %identifier-to-name{$identifier};
     {
@@ -331,9 +333,9 @@ method !get (Str:D $identifier is required) {
 ### boot
     %!vms{$name}.boot           = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot.new(
         :delay(%content<boot><delay>),
-        :efi-legacy-boot(%content<boot><efi_legacy_boot>:exists                                         ?? %content<boot><efi_legacy_boot>                                                  !! Nil),
+        :efi-legacy-boot(%content<boot><efi_legacy_boot>:exists                                     ?? %content<boot><efi_legacy_boot>                          !! Nil),
         :enter-setup-mode(%content<boot><enter_setup_mode>),
-        :network-protocol(%content<boot><network-protocol>:exists                                       ?? %content<boot><network-protocol>                                                 !! Nil),
+        :network-protocol(%content<boot><network-protocol>:exists                                   ?? %content<boot><network-protocol>                         !! Nil),
         :retry(%content<boot><retry>),
         :retry-delay(%content<boot><retry_delay>),
         :type(%content<boot><type>),
@@ -341,11 +343,11 @@ method !get (Str:D $identifier is required) {
 
 ### boot_devices
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device @boot-devices;
-    @boot-devices               = Nil;
+    @boot-devices   = Nil;
     for %content<boot_devices>.list -> %boot-device {
         @boot-devices.push: Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::boot-devices::boot-device.new(
-            :disks(%boot-device<disks>:exists                                                           ?? %boot-device<disks>                                                              !! Array.new()),
-            :nic(%boot-device<nic>:exists                                                               ?? %boot-device<nic>                                                                !! Nil),
+            :disks(%boot-device<disks>:exists                                                       ?? %boot-device<disks>                                      !! Array.new()),
+            :nic(%boot-device<nic>:exists                                                           ?? %boot-device<nic>                                        !! Nil),
             :type(%boot-device<type>),
         );
     }
@@ -353,24 +355,24 @@ method !get (Str:D $identifier is required) {
 
 ### cdroms
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom %cdroms;
-    %cdroms                     = Nil;
+    %cdroms     = Nil;
     for %content<cdroms>.keys -> $cdrom {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::backing $backing .= new(
-            :auto-detect(%content<cdroms>{$cdrom}<backing><auto_detect>:exists                          ?? %content<cdroms>{$cdrom}<backing><auto_detect>                                   !! Nil),
-            :device-access-type(%content<cdroms>{$cdrom}<backing><device_access_type>:exists            ?? %content<cdroms>{$cdrom}<backing><device_access_type>                            !! Nil),
-            :host-device(%cdrom<backing><host_device>:exists                                            ?? %content<cdroms>{$cdrom}<backing><host_device>                                   !! Nil),
-            :iso-file(%cdrom<backing><iso_file>:exists                                                  ?? %content<cdroms>{$cdrom}<backing><iso_file>                                      !! Nil),
+            :auto-detect(%content<cdroms>{$cdrom}<backing><auto_detect>:exists                      ?? %content<cdroms>{$cdrom}<backing><auto_detect>           !! Nil),
+            :device-access-type(%content<cdroms>{$cdrom}<backing><device_access_type>:exists        ?? %content<cdroms>{$cdrom}<backing><device_access_type>    !! Nil),
+            :host-device(%cdrom<backing><host_device>:exists                                        ?? %content<cdroms>{$cdrom}<backing><host_device>           !! Nil),
+            :iso-file(%cdrom<backing><iso_file>:exists                                              ?? %content<cdroms>{$cdrom}<backing><iso_file>              !! Nil),
             :type(%content<cdroms>{$cdrom}<backing><type>),
         );
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::ide $ide;
-        $ide                    = Nil;
-        $ide                   .= new(
+        $ide    = Nil;
+        $ide   .= new(
             :master(%content<cdroms>{$cdrom}<ide><master>),
             :primary(%content<cdroms>{$cdrom}<ide><primary>),
         ) if %content<cdroms>{$cdrom}<ide>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::cdroms::cdrom::sata $sata;
-        $sata                   = Nil;
-        $sata                  .= new(
+        $sata   = Nil;
+        $sata  .= new(
             :bus(%content<cdroms>{$cdrom}<sata><bus>),
             :unit(%content<cdroms>{$cdrom}<sata><unit>),
         ) if %content<cdroms>{$cdrom}<sata>:exists;
@@ -397,37 +399,37 @@ method !get (Str:D $identifier is required) {
 
 ### disks
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk %disks;
-    %disks                      = Nil;
+    %disks  = Nil;
     for %content<disks>.keys -> $disk {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::backing $backing .= new(
             :type(%content<disks>{$disk}<backing><type>),
-            :vmdk-file(%content<disks>{$disk}<backing><vmdk_file>:exists                                ?? %disk<backing><vmdk_file>                                                        !! Nil),
+            :vmdk-file(%content<disks>{$disk}<backing><vmdk_file>:exists                            ?? %disk<backing><vmdk_file>                                !! Nil),
         );
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::ide $ide;
-        $ide                    = Nil;
-        $ide                    = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::ide.new(
+        $ide    = Nil;
+        $ide    = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::ide.new(
             :master(%content<disks>{$disk}<ide><master>),
             :primary(%content<disks>{$disk}<ide><primary>),
         ) if %content<disks>{$disk}<ide>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::nvme $nvme;
-        $nvme                   = Nil;
-        $nvme                   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::nvme.new(
+        $nvme   = Nil;
+        $nvme   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::nvme.new(
             :bus(%content<disks>{$disk}<nvme><bus>),
             :unit(%content<disks>{$disk}<nvme><unit>),
         ) if %content<disks>{$disk}<nvme>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::sata $sata;
-        $sata                   = Nil;
-        $sata                   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::sata.new(
+        $sata   = Nil;
+        $sata   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::sata.new(
             :bus(%content<disks>{$disk}<sata><bus>),
             :unit(%content<disks>{$disk}<sata><unit>),
         ) if %content<disks>{$disk}<sata>:exists;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::scsi $scsi;
-        $scsi                   = Nil;
-        $scsi                   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::scsi.new(
+        $scsi   = Nil;
+        $scsi   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk::scsi.new(
             :bus(%content<disks>{$disk}<scsi><bus>),
             :unit(%content<disks>{$disk}<scsi><unit>),
         ) if %content<disks>{$disk}<scsi>:exists;
-        %disks{$disk}           = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk.new(
+        %disks{$disk} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::disks::disk.new(
             :$backing,
             :capacity(%content<disks>{$disk}<capacity>),
             :$ide,
@@ -442,15 +444,15 @@ method !get (Str:D $identifier is required) {
 
 ### floppies
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy %floppies;
-    %floppies                   = Nil;
+    %floppies   = Nil;
     for %content<floppies>.keys -> $floppy {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy::backing $backing .= new(
-            :auto-detect(%content<floppies>{$floppy}<backing><auto_detect>:exists                       ?? %content<floppies>{$floppy}<backing><auto_detect>                                !! Nil),
-            :host-device(%content<floppies>{$floppy}<backing><host_device>:exists                       ?? %content<floppies>{$floppy}<backing><host_device>                                !! Nil),
-            :image-file(%content<floppies>{$floppy}<backing><image_file>:exists                         ?? %content<floppies>{$floppy}<backing><image_file>                                 !! Nil),
+            :auto-detect(%content<floppies>{$floppy}<backing><auto_detect>:exists                   ?? %content<floppies>{$floppy}<backing><auto_detect>        !! Nil),
+            :host-device(%content<floppies>{$floppy}<backing><host_device>:exists                   ?? %content<floppies>{$floppy}<backing><host_device>        !! Nil),
+            :image-file(%content<floppies>{$floppy}<backing><image_file>:exists                     ?? %content<floppies>{$floppy}<backing><image_file>         !! Nil),
             :type(%content<floppies>{$floppy}<backing><type>),
         );
-        %floppies{$floppy}      = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy.new(
+        %floppies{$floppy} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::floppies::floppy.new(
             :allow-guest-control(%content<floppies>{$floppy}<allow_guest_control>),
             :$backing,
             :label(%content<floppies>{$floppy}<label>),
@@ -465,10 +467,10 @@ method !get (Str:D $identifier is required) {
 
 ### hardware
     %!vms{$name}.hardware       = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::hardware.new(
-        :upgrade-error(%content<hardware><upgrade_error>:exists                                         ?? %content<hardware><upgrade_error>                                                !! Hash.new),
+        :upgrade-error(%content<hardware><upgrade_error>:exists                                     ?? %content<hardware><upgrade_error>                        !! Hash.new),
         :upgrade-policy(%content<hardware><upgrade_policy>),
         :upgrade-status(%content<hardware><upgrade_status>),
-        :upgrade-version(%content<hardware><upgrade_version>:exists                                     ?? %content<hardware><upgrade_version>                                              !! Nil),
+        :upgrade-version(%content<hardware><upgrade_version>:exists                                 ?? %content<hardware><upgrade_version>                      !! Nil),
         :version(%content<hardware><version>),
     );
 
@@ -485,8 +487,8 @@ method !get (Str:D $identifier is required) {
 ### memory
     %!vms{$name}.memory         = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::memory.new(
         :hot-add-enabled(%content<memory><hot_add_enabled>),
-        :hot-add-increment-size-MiB(%content<memory><hot_add_increment_size_MiB>:exists                 ?? %content<memory><hot_add_increment_size_MiB>                                     !! Nil),
-        :hot-add-limit-MiB(%content<memory><hot_add_limit_MiB>:exists                                   ?? %content<memory><hot_add_limit_MiB>                                              !! Nil),
+        :hot-add-increment-size-MiB(%content<memory><hot_add_increment_size_MiB>:exists             ?? %content<memory><hot_add_increment_size_MiB>             !! Nil),
+        :hot-add-limit-MiB(%content<memory><hot_add_limit_MiB>:exists                               ?? %content<memory><hot_add_limit_MiB>                      !! Nil),
         :size-MiB(%content<memory><size_MiB>),
     );
 
@@ -494,124 +496,146 @@ method !get (Str:D $identifier is required) {
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic %nics;
     for %content<nics>.keys -> $nic {
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic::backing $backing .= new(
-            :connection-cookie(%content<nics>{$nic}<backing><connection_cookie>:exists                  ?? %content<nics>{$nic}<backing><connection_cookie>                                 !! Nil),
-            :distributed-port(%content<nics>{$nic}<backing><distributed_port>:exists                    ?? %content<nics>{$nic}<backing><distributed_port>                                  !! Nil),
-            :distributed-switch-uuid(%content<nics>{$nic}<backing><distributed_switch_uuid>:exists      ?? %content<nics>{$nic}<backing><distributed_switch_uuid>                           !! Nil),
-            :host-device(%content<nics>{$nic}<backing><host_device>:exists                              ?? %content<nics>{$nic}<backing><host_device>                                       !! Nil),
-            :network(%content<nics>{$nic}<backing><network>:exists                                      ?? %content<nics>{$nic}<backing><network>                                           !! Nil),
-            :network-name(%content<nics>{$nic}<backing><network_name>:exists                            ?? %content<nics>{$nic}<backing><network_name>                                      !! Nil),
-            :opaque-network-id(%content<nics>{$nic}<backing><opaque_network_id>:exists                  ?? %content<nics>{$nic}<backing><opaque_network_id>                                 !! Nil),
-            :opaque-network-type(%content<nics>{$nic}<backing><opaque_network_type>:exists              ?? %content<nics>{$nic}<backing><opaque_network_type>                               !! Nil),
+            :connection-cookie(%content<nics>{$nic}<backing><connection_cookie>:exists              ?? %content<nics>{$nic}<backing><connection_cookie>         !! Nil),
+            :distributed-port(%content<nics>{$nic}<backing><distributed_port>:exists                ?? %content<nics>{$nic}<backing><distributed_port>          !! Nil),
+            :distributed-switch-uuid(%content<nics>{$nic}<backing><distributed_switch_uuid>:exists  ?? %content<nics>{$nic}<backing><distributed_switch_uuid>   !! Nil),
+            :host-device(%content<nics>{$nic}<backing><host_device>:exists                          ?? %content<nics>{$nic}<backing><host_device>               !! Nil),
+            :network(%content<nics>{$nic}<backing><network>:exists                                  ?? %content<nics>{$nic}<backing><network>                   !! Nil),
+            :network-name(%content<nics>{$nic}<backing><network_name>:exists                        ?? %content<nics>{$nic}<backing><network_name>              !! Nil),
+            :opaque-network-id(%content<nics>{$nic}<backing><opaque_network_id>:exists              ?? %content<nics>{$nic}<backing><opaque_network_id>         !! Nil),
+            :opaque-network-type(%content<nics>{$nic}<backing><opaque_network_type>:exists          ?? %content<nics>{$nic}<backing><opaque_network_type>       !! Nil),
             :type(%content<nics>{$nic}<backing><type>),
         );
         %nics{$nic}             = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics::nic.new(
             :allow-guest-control(%content<nics>{$nic}<allow_guest_control>),
             :$backing,
             :label(%content<nics>{$nic}<label>),
-            :mac-address(%content<nics>{$nic}<mac_address>:exists                                       ?? %content<nics>{$nic}<mac_address>                                                !! Nil),
+            :mac-address(%content<nics>{$nic}<mac_address>:exists                                   ?? %content<nics>{$nic}<mac_address>                        !! Nil),
             :mac-type(%content<nics>{$nic}<mac_type>),
-            :pci-slot-number(%content<nics>{$nic}<pci_slot_number>:exists                               ?? %content<nics>{$nic}<pci_slot_number>                                            !! Nil),
+            :pci-slot-number(%content<nics>{$nic}<pci_slot_number>:exists                           ?? %content<nics>{$nic}<pci_slot_number>                    !! Nil),
             :start-connected(%content<nics>{$nic}<start_connected>),
             :state(%content<nics>{$nic}<state>),
             :type(%content<nics>{$nic}<type>),
-            :upt-compatibility-enabled(%content<nics>{$nic}<upt_compatibility_enabled>:exists           ?? %content<nics>{$nic}<upt_compatibility_enabled>                                  !! Nil),
+            :upt-compatibility-enabled(%content<nics>{$nic}<upt_compatibility_enabled>:exists       ?? %content<nics>{$nic}<upt_compatibility_enabled>          !! Nil),
             :wake-on-lan-enabled(%content<nics>{$nic}<wake_on_lan_enabled>),
         );
     }
     %!vms{$name}.nics           = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics.new(:%nics);
-
-### nvme adapters
-    my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters::nvme-adapter %nvme-adapters;
-    %nvme-adapters              = Nil;
-    for %content<nvme_adapaters>.keys -> $nvme-adapter {
-        %nvme-adapters{$nvme-adapter} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters::nvme-adapter.new(
-            :bus(%content<nvme_adapters>{$nvme-adapter}<bus>),
-            :label(%content<nvme_adapters>{$nvme-adapter}<label>),
-            :pci-slot-number(%content<nvme_adapters>{$nvme-adapter}<pci_slot_number>:exists             ?? %content<nvme_adapters>{$nvme-adapter}<pci_slot_number>                          !! Nil),
-        );
-    }
-    %!vms{$name}.nvme-adapters  = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters.new(:%nvme-adapters);
-
 ### parallel ports
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port %parallel-ports;
-    %parallel-ports             = Nil;
-    for %content<parallel_ports>.keys -> $parallel-port {
+    for %content<parallel_ports>.list -> %anonymous {
+        my $key = %anonymous<key>;
+        my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port::backing $backing .= new(
-            :auto-detect(%content<parallel_ports>{$parallel-port}<backing><auto_detect>:exists          ?? %value<backing><auto_detect>                                                     !! Nil),
-            :file(%content<parallel_ports>{$parallel-port}<backing><file>:exists                        ?? %content<parallel_ports>{$parallel-port}<backing><file>                          !! Nil),
-            :host-device(%content<parallel_ports>{$parallel-port}<backing><host_device>:exists          ?? %content<parallel_ports>{$parallel-port}<backing><host_device>                   !! Nil),
-            :type(%content<parallel_ports>{$parallel-port}<backing><type>),
+            :auto-detect(%value<backing><auto_detect>:exists
+                ?? %value<backing><auto_detect>
+                !! Nil
+            ),
+            :file(%value<backing><file>:exists
+                ?? %value<backing><file>
+                !! Nil
+            ),
+            :host-device(%value<backing><host_device>:exists
+                ?? %value<backing><host_device>
+                !! Nil
+            ),
+            :type(%value<backing><type>),
         );
-        %parallel-ports{$parallel-port} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port.new(
-            :allow-guest-control(%content<parallel_ports>{$parallel-port}<allow_guest_control>),
+        %parallel-ports{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports::parallel-port.new(
+            :allow-guest-control(%value<allow_guest_control>),
             :$backing,
-            :label(%content<parallel_ports>{$parallel-port}<label>),
-            :start-connected(%content<parallel_ports>{$parallel-port}<start_connected>),
-            :state(%content<parallel_ports>{$parallel-port}<state>),
+            :label(%value<label>),
+            :start-connected(%value<start_connected>),
+            :state(%value<state>),
         );
     }
-    %!vms{$name}.parallel-ports = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports.new(:%parallel-ports);
-
-### power_state
-    %!vms{$name}.power-state    = %content<power_state>;
-
 ### sata adapters
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters::sata-adapter %sata-adapters;
-    %sata-adapters              = Nil;
-    for %content<sata_adapters>.keys -> $sata-adapter {
-        %sata-adapters{$sata-adapter} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters::sata-adapter.new(
-            :bus(%content<sata_adapters>{$sata-adapter}<bus>),
-            :label(%content<sata_adapters>{$sata-adapter}<label>),
-            :pci-slot-number(%content<sata_adapters>{$sata-adapter}<pci_slot_number>:exists             ?? %content<sata_adapters>{$sata-adapter}<pci_slot_number>                          !! Nil),
-            :type(%content<sata_adapters>{$sata-adapter}<type>),
+    for %content<sata_adapters>.list -> %anonymous {
+        my $key = %anonymous<key>;
+        my %value = %anonymous<value>;
+        %sata-adapters{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters::sata-adapter.new(
+            :bus(%value<bus>),
+            :label(%value<label>),
+            :pci-slot-number(%content<pci_slot_number>:exists
+                ?? %content<pci_slot_number>
+                !! Nil
+            ),
+            :type(%value<type>),
         );
     }
-    %!vms{$name}.sata-adapters  = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters.new(:%sata-adapters);
-
 ### scsi adapters
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters::scsi-adapter %scsi-adapters;
-    %scsi-adapters              = Nil;
-    for %content<scsi_adapters>.keys -> $scsi-adapter {
+    for %content<scsi_adapters>.list -> %anonymous {
+        my $key = %anonymous<key>;
+        my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters::scsi-adapter::scsi $scsi .= new(
-            :bus(%content<scsi_adapters>{$scsi-adapter}<scsi><bus>),
-            :unit(%content<scsi_adapters>{$scsi-adapter}<scsi><unit>),
+            :bus(%value<scsi><bus>),
+            :pci-slot-number(%value<scsi><pci_slot_number>:exists
+                ?? %value<scsi><pci_slot_number>
+                !! Nil
+            ),
+            :unit(%value<scsi><unit>),
         );
-        %scsi-adapters{$scsi-adapter} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters::scsi-adapter.new(
-            :label(%content<scsi_adapters>{$scsi-adapter}<label>),
-            :pci-slot-number(%content<scsi_adapters>{$scsi-adapter}<pci_slot_number>:exists             ?? %content<scsi_adapters>{$scsi-adapter}<pci_slot_number>                          !! Nil),
+        %scsi-adapters{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters::scsi-adapter.new(
+            :label(%value<label>),
             :$scsi,
-            :sharing(%content<scsi_adapters>{$scsi-adapter}<sharing>),
-            :type(%content<scsi_adapters>{$scsi-adapter}<type>),
+            :sharing(%value<sharing>),
+            :type(%value<type>),
         );
     }
-    %!vms{$name}.scsi-adapters  = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters.new(:%scsi-adapters);
-
 ### serial ports
     my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port %serial-ports;
-    %serial-ports               = Nil;
-    for %content<serial_ports>.keys -> $serial-ports {
+    for %content<serial_ports>.list -> %anonymous {
+        my $key = %anonymous<key>;
+        my %value = %anonymous<value>;
         my Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port::backing $backing .= new(
-            :auto-detect(%content<serial_ports>{$serial-ports}<backing><auto_detect>:exists             ?? %content<serial_ports>{$serial-ports}<backing><auto_detect>                     !! Nil),
-            :file(%content<serial_ports>{$serial-ports}<backing><file>:exists                           ?? %content<serial_ports>{$serial-ports}<backing><file>                            !! Nil),
-            :host-device(%content<serial_ports>{$serial-ports}<backing><host_device>:exists             ?? %content<serial_ports>{$serial-ports}<backing><host_device>                     !! Nil),
-            :network-location(%content<serial_ports>{$serial-ports}<backing><network_location>:exists   ?? Cro::Uri.new(%content<serial_ports>{$serial-ports}<backing><network_location>)  !! Nil),
-            :no-rx-loss(%content<serial_ports>{$serial-ports}<backing><no_rx_loss>:exists               ?? %content<serial_ports>{$serial-ports}<backing><no_rx_loss>                      !! Nil),
-            :pipe(%content<serial_ports>{$serial-ports}<backing><pipe>:exists                           ?? %content<serial_ports>{$serial-ports}<backing><pipe>                            !! Nil),
-            :proxy(%content<serial_ports>{$serial-ports}<backing><proxy>:exists                         ?? Cro::Uri.new(%content<serial_ports>{$serial-ports}<backing><proxy>)             !! Nil),
-            :type(%content<serial_ports>{$serial-ports}<backing><type>),
+            :auto-detect(%value<backing><auto_detect>:exists
+                ?? %value<backing><auto_detect>
+                !! Nil
+            ),
+            :file(%value<backing><file>:exists
+                ?? %value<backing><file>
+                !! Nil
+            ),
+            :host-device(%value<backing><host_device>:exists
+                ?? %value<backing><host_device>
+                !! Nil
+            ),
+            :network-location(%value<backing><network_location>:exists
+                ?? Cro::Uri.new(%value<backing><network_location>)
+                !! Nil
+            ),
+            :no-rx-loss(%value<backing><no_rx_loss>:exists
+                ?? %value<backing><no_rx_loss>
+                !! Nil
+            ),
+            :pipe(%value<backing><pipe>:exists
+                ?? %value<backing><pipe>
+                !! Nil
+            ),
+            :proxy(%value<backing><proxy>:exists
+                ?? Cro::Uri.new(%value<backing><proxy>)
+                !! Nil
+            ),
+            :type(%value<backing><type>),
         );
         %serial-ports{$key} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports::serial-port.new(
-            :allow-guest-control(%content<serial_ports>{$serial-ports}<allow_guest_control>),
+            :allow-guest-control(%value<allow_guest_control>),
             :$backing,
-            :label(%content<serial_ports>{$serial-ports}<label>),
-            :start-connected(%content<serial_ports>{$serial-ports}<start_connected>),
-            :state(%content<serial_ports>{$serial-ports}<state>),
-            :yield-on-poll(%content<serial_ports>{$serial-ports}<yield_on_poll>),
+            :label(%value<label>),
+            :start-connected(%value<start_connected>),
+            :state(%value<state>),
+            :yield-on-poll(%value<yield_on_poll>),
         );
     }
+### Assemble
+    %!vms{$name}.parallel-ports = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports.new(:%parallel-ports);
+    %!vms{$name}.sata-adapters  = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters.new(:%sata-adapters);
+    %!vms{$name}.scsi-adapters  = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters.new(:%scsi-adapters);
     %!vms{$name}.serial-ports   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports.new(:%serial-ports);
-
     self.vm($name).queried      = True;
+
 }
 
 ### GET https://{server}/api/vcenter/vm
@@ -623,9 +647,9 @@ method !list () {
         my $identifier  = $v<vm>;
         %identifier-to-name{$identifier} = $name;
         %!vms{$name} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm.new(
-            :cpu-count($v<cpu_count>:exists                                     ?? $v<cpu_count>                                        !! Nil),
+            :cpu-count($v<cpu_count>:exists                                     ?? $v<cpu_count>                                !! Nil),
             :$identifier,
-            :memory-size-MiB($v<memory_size_MiB>:exists                         ?? $v<memory_size_MiB>                                  !! Nil),
+            :memory-size-MiB($v<memory_size_MiB>:exists                         ?? $v<memory_size_MiB>                          !! Nil),
             :$name,
             :power-state($v<power_state>),
         );
@@ -643,9 +667,9 @@ method !list-by-host-id (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host
         my $identifier  = %v<vm>;
         %identifier-to-name{$identifier} = $name;
         %!vms{$name} = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm.new(
-            :cpu-count(%v<cpu_count>:exists                                     ?? %v<cpu_count>                                        !! Nil),
+            :cpu-count(%v<cpu_count>:exists                                     ?? %v<cpu_count>                                !! Nil),
             :$identifier,
-            :memory-size-MiB(%v<memory_size_MiB>:exists                         ?? %v<memory_size_MiB>                                  !! Nil),
+            :memory-size-MiB(%v<memory_size_MiB>:exists                         ?? %v<memory_size_MiB>                          !! Nil),
             :$name,
             :power-state(%v<power_state>),
         );
