@@ -8,7 +8,7 @@ use Hypervisor::VMware::vSphere::REST::vcenter;
 my Hypervisor::VMware::vSphere::REST::vcenter $vcenter;
 
 #$vcenter .= new: :auth-login<A028441@wmata.local>, :vcenter<eqvcsapv.wmata.local>, :root-stash-path</home/mdevine/.rakucache/Hypervisor/VMware/vSphere/REST>;
-$vcenter .= new: :auth-login<A028441@wmata.local>, :vcenter<eqvcsapv.wmata.local>;
+$vcenter .= new: :auth-login<A028441@wmata.local>, :vcenter<eqvcsapv.wmata.local>, :use-cache;
 
 #ddt $vcenter;
 
