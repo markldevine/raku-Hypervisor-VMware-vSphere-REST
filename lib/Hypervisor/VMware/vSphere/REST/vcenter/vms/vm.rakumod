@@ -10,6 +10,7 @@ use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::hardware;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::identity;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::memory;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics;
+use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters;
 use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters;
@@ -18,7 +19,7 @@ use Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports;
 has Int $.cpu-count;
 has Int $.memory-size-MiB;
 has Str $.name              is required;
-has Str $.power-state       is required;
+has Str $.power-state       is required is rw;
 has Str $.identifier        is required;
 
 has Bool $.queried          is rw = False;
@@ -35,6 +36,7 @@ has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::identity       $.identi
 has Bool                                                                $.instant_clone_frozen  is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::memory         $.memory                is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nics           $.nics                  is rw;
+has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::nvme-adapters  $.nvme-adapters         is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::parallel-ports $.parallel-ports        is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::sata-adapters  $.sata-adapters         is rw;
 has Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::scsi-adapters  $.scsi-adapters         is rw;

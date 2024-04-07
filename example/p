@@ -18,18 +18,15 @@ $vcenter .= new: :auth-login<A028441@wmata.local>, :vcenter<eqvcsapv.wmata.local
 #put '-' x 80 ~ ' Datastores';   $vcenter.datastores.dump;
 #put '-' x 80 ~ ' Folders';      $vcenter.folders.dump;
 #put '-' x 80 ~ ' Hosts';        $vcenter.hosts.dump;
-#put '-' x 80 ~ ' VMs';          $vcenter.vms.dump;
-
-my %vm-names;
-for $vcenter.hosts.names -> $host-name {
-    put '-' x 20 ~ $host-name;
-    for $vcenter.vms.list(:host-object($vcenter.hosts.host($host-name))) -> $vm {
-        %vm-names{$vm} = 0;
-    }
-}
+put '-' x 80 ~ ' VMs';          $vcenter.vms.dump;
 
 =finish
 
-for %vm-names.keys.sort -> $vm-name {
-    put $vm-name;
+my %hosts-vms;
+for $vcenter.hosts.names -> $host-name {
+    put '-' x 20 ~ $host-name;
+    for $vcenter.vms.list(:host-object($vcenter.hosts.host($host-name))) -> $vm {
+        %hosts-vms{$host-name}.push: $vm;
+    }
 }
+ddt %hosts-vms;
