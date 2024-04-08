@@ -55,7 +55,14 @@ method vm (Str:D $name is required) {
     die 'Unknown vm name: ' ~ $name;
 }
 
-method query (Str:D $identifier is required) {
+multi method query (Str:D :$vm-name is required) {
+    self!list unless self.listed;
+    die 'Unknown virtual machine: ' ~ $vm-name unless %!vms{$vm-name}:exists;
+    return if self.vm($vm-name).queried;
+    return self!get(self.vm($vm-name).identifier);
+}
+
+multi method query (Str:D :$identifier is required) {
     self!list unless self.listed;
     if %identifier-to-name{$identifier}:exists {
         my $name = %identifier-to-name{$identifier};
@@ -74,241 +81,6 @@ multi method list (Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D :$h
 #   say self.^name ~ '::' ~ &?ROUTINE.name ~ ' multi for Hypervisor::VMware::vSphere::REST::vcenter::hosts::host:D';
     self!list-by-host-id(:$host-object);
     return %!vms.keys.sort;
-}
-
-method dump (Str :$name) {
-    my @names = self.list;
-    @names = ( $name ) with $name;
-    for @names -> $vm-name {
-        my $identifier = self.vm($vm-name).identifier;
-        self.query($identifier);
-        put self.vm($vm-name).name;
-        put "\t" ~ 'vm identifier                                   = ' ~ self.vm($vm-name).identifier;
-#       put "\t" ~ 'power state                                     = ' ~ self.vm($vm-name).power-state;
-### boot
-        put "\t" ~ 'boot';
-        put "\t\t" ~ 'delay                                   = ' ~ self.vm($vm-name).boot.delay;
-        put "\t\t" ~ 'efi legacy boot                         = ' ~ so self.vm($vm-name).boot.efi-legacy-boot;
-        put "\t\t" ~ 'enter setup mode                        = ' ~ self.vm($vm-name).boot.enter-setup-mode;
-        put "\t\t" ~ 'retry                                   = ' ~ self.vm($vm-name).boot.retry;
-        put "\t\t" ~ 'retry delay                             = ' ~ self.vm($vm-name).boot.retry-delay;
-        put "\t\t" ~ 'type                                    = ' ~ self.vm($vm-name).boot.type;
-### boot-devices
-        if self.vm($vm-name).boot-devices.list {
-            put "\t" ~ 'boot devices';
-            my $boot-device-index = 0;
-            for self.vm($vm-name).boot-devices.list -> $boot-device {
-                put "\t\t" ~ $boot-device-index++ ~ ':';
-                put "\t\t\t" ~ 'disks                           = ' ~ $boot-device.disks.join(', ') if $boot-device.disks.elems;
-                put "\t\t\t" ~ 'nic                             = ' ~ $boot-device.nic with $boot-device.nic;
-                put "\t\t\t" ~ 'type                            = ' ~ $boot-device.type;
-            }
-        }
-### cpu
-        put "\t" ~ 'cpu';
-        put "\t\t" ~ 'cores per socket                        = ' ~ self.vm($vm-name).cpu.cores-per-socket;
-        put "\t\t" ~ 'count                                   = ' ~ self.vm($vm-name).cpu.count;
-        put "\t\t" ~ 'hot add enabled                         = ' ~ self.vm($vm-name).cpu.hot-add-enabled;
-        put "\t\t" ~ 'hot remove enabled                      = ' ~ self.vm($vm-name).cpu.hot-remove-enabled;
-### cdroms
-        put "\t" ~ 'cdroms';
-        for self.vm($vm-name).cdroms.list -> $cdrom-name {
-            put "\t\t" ~ $cdrom-name;
-            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).allow-guest-control;
-            put "\t\t\t" ~ 'backing';
-            put "\t\t\t\t" ~ 'auto detect             = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.auto-detect
-                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.auto-detect;
-            put "\t\t\t\t" ~ 'device access type      = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.device-access-type
-                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.device-access-type;
-            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.host-device
-                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.host-device;
-            put "\t\t\t\t" ~ 'iso file                = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.iso-file
-                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.iso-file;
-            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.type;
-            with self.vm($vm-name).cdroms.cdrom($cdrom-name).ide {
-                put "\t\t\t" ~ 'ide';
-                put "\t\t\t\t" ~ 'master                  = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).ide.master;
-                put "\t\t\t\t" ~ 'primary                 = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).ide.primary;
-            }
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).label;
-            with self.vm($vm-name).cdroms.cdrom($cdrom-name).sata {
-                put "\t\t\t" ~ 'sata';
-                put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).sata.bus;
-                put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).sata.unit;
-            }
-            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).start-connected;
-            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).state;
-            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).type;
-        }
-### disks
-        put "\t" ~ 'disks';
-        for self.vm($vm-name).disks.list -> $disk-name {
-            put "\t\t" ~ $disk-name;
-            put "\t\t\t" ~ 'backing';
-            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).disks.disk($disk-name).backing.type;
-            put "\t\t\t\t" ~ 'vmdk file               = ' ~ self.vm($vm-name).disks.disk($disk-name).backing.vmdk-file
-                with self.vm($vm-name).disks.disk($disk-name).backing.vmdk-file;
-            put "\t\t\t" ~ 'capacity                        = ' ~ self.vm($vm-name).disks.disk($disk-name).capacity
-                with self.vm($vm-name).disks.disk($disk-name).capacity;
-            with self.vm($vm-name).disks.disk($disk-name).ide {
-                put "\t\t\t" ~ 'ide';
-                put "\t\t\t\t" ~ 'master                  = ' ~ self.vm($vm-name).disks.disk($disk-name).ide.master;
-                put "\t\t\t\t" ~ 'primary                 = ' ~ self.vm($vm-name).disks.disk($disk-name).ide.primary;
-            }
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).disks.disk($disk-name).label;
-            with self.vm($vm-name).disks.disk($disk-name).sata {
-                put "\t\t\t" ~ 'sata';
-                put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).disks.disk($disk-name).sata.bus;
-                put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).disks.disk($disk-name).sata.unit;
-            }
-            with self.vm($vm-name).disks.disk($disk-name).scsi {
-                put "\t\t\t" ~ 'scsi';
-                put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).disks.disk($disk-name).scsi.bus;
-                put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).disks.disk($disk-name).scsi.unit;
-            }
-            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).disks.disk($disk-name).type;
-        }
-### floppies
-        put "\t" ~ 'floppies';
-        for self.vm($vm-name).floppies.list -> $floppy-name {
-            put "\t\t" ~ $floppy-name;
-            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).allow-guest-control;
-            put "\t\t\t" ~ 'backing';
-            put "\t\t\t\t" ~ 'auto-detect             = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.auto-detect
-                with self.vm($vm-name).floppies.floppy($floppy-name).backing.auto-detect;
-            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.type;
-            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.host-device
-                with self.vm($vm-name).floppies.floppy($floppy-name).backing.host-device;
-            put "\t\t\t\t" ~ 'image file              = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.image-file
-                with self.vm($vm-name).floppies.floppy($floppy-name).backing.image-file;
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).label;
-            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).start-connected;
-            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).state;
-        }
-### guest OS
-        put "\t" ~ 'guest OS                                        = ' ~ self.vm($vm-name).guest-OS;
-### hardware
-        put "\t" ~ 'hardware';
-        put "\t\t" ~ 'upgrade error                           = ' ~ self.vm($vm-name).hardware.upgrade-error.kv
-            if self.vm($vm-name).hardware.upgrade-error.elems;
-        put "\t\t" ~ 'upgrade policy                          = ' ~ self.vm($vm-name).hardware.upgrade-policy;
-        put "\t\t" ~ 'upgrade status                          = ' ~ self.vm($vm-name).hardware.upgrade-status;
-        put "\t\t" ~ 'upgrade version                         = ' ~ self.vm($vm-name).hardware.upgrade-version
-            with self.vm($vm-name).hardware.upgrade-version;
-        put "\t\t" ~ 'version                                 = ' ~ self.vm($vm-name).hardware.version;
-### memory
-        put "\t" ~ 'memory';
-        put "\t\t" ~ 'hot add enabled                         = ' ~ self.vm($vm-name).memory.hot-add-enabled;
-        put "\t\t" ~ 'hot add increment size MiB              = ' ~ self.vm($vm-name).memory.hot-add-increment-size-MiB
-            with self.vm($vm-name).memory.hot-add-increment-size-MiB;
-        put "\t\t" ~ 'hot add limit MiB                       = ' ~ self.vm($vm-name).memory.hot-add-limit-MiB
-            with self.vm($vm-name).memory.hot-add-limit-MiB;
-        put "\t\t" ~ 'size MiB                                = ' ~ self.vm($vm-name).memory.size-MiB;
-### nics
-        put "\t" ~ 'nics';
-        for self.vm($vm-name).nics.list -> $nic-name {
-            put "\t\t" ~ $nic-name;
-            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).nics.nic($nic-name).allow-guest-control;
-            put "\t\t\t" ~ 'backing';
-            put "\t\t\t\t" ~ 'connection cookie       = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.connection-cookie
-                with self.vm($vm-name).nics.nic($nic-name).backing.connection-cookie;
-            put "\t\t\t\t" ~ 'distributed port        = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.distributed-port
-                with self.vm($vm-name).nics.nic($nic-name).backing.distributed-port;
-            put "\t\t\t\t" ~ 'distributed switch uuid = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.distributed-switch-uuid
-                with self.vm($vm-name).nics.nic($nic-name).backing.distributed-switch-uuid;
-            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.host-device
-                with self.vm($vm-name).nics.nic($nic-name).backing.host-device;
-            put "\t\t\t\t" ~ 'network                 = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.network
-                with self.vm($vm-name).nics.nic($nic-name).backing.network;
-            put "\t\t\t\t" ~ 'opaque network id       = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-id
-                with self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-id;
-            put "\t\t\t\t" ~ 'opaque-network-type      = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-type
-                with self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-type;
-            put "\t\t\t\t" ~ 'network name            = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.network-name
-                with self.vm($vm-name).nics.nic($nic-name).backing.network-name;
-            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.type;
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).nics.nic($nic-name).label;
-            put "\t\t\t" ~ 'mac address                     = ' ~ self.vm($vm-name).nics.nic($nic-name).mac-address
-                with self.vm($vm-name).nics.nic($nic-name).mac-address;
-            put "\t\t\t" ~ 'mac type                        = ' ~ self.vm($vm-name).nics.nic($nic-name).mac-type;
-            put "\t\t\t" ~ 'pci slot number                 = ' ~ self.vm($vm-name).nics.nic($nic-name).pci-slot-number
-                with self.vm($vm-name).nics.nic($nic-name).pci-slot-number;
-            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).nics.nic($nic-name).start-connected;
-            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).nics.nic($nic-name).state;
-            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).nics.nic($nic-name).type;
-            put "\t\t\t" ~ 'upt compatibility enabled       = ' ~ self.vm($vm-name).nics.nic($nic-name).upt-compatibility-enabled
-                with self.vm($vm-name).nics.nic($nic-name).upt-compatibility-enabled;
-            put "\t\t\t" ~ 'wake on lan enabled             = ' ~ self.vm($vm-name).nics.nic($nic-name).wake-on-lan-enabled;
-        }
-### parallel ports
-        put "\t" ~ 'parallel ports';
-        for self.vm($vm-name).parallel-ports.list -> $parallel-port-name {
-            put "\t\t" ~ $parallel-port-name;
-            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).allow-guest-control;
-            put "\t\t\t" ~ 'backing';
-            put "\t\t\t\t" ~ 'auto-detect             = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.auto-detect
-                with self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.auto-detect;
-            put "\t\t\t\t" ~ 'file                    = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.file
-                with self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.file;
-            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.host-device
-                with self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.host-device;
-            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.type;
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).label;
-            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).start-connected;
-            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).state;
-        }
-### power state
-        put "\t" ~ 'power state                                     = ' ~ self.vm($vm-name).power-state;
-### sata adapters
-        put "\t" ~ 'sata adapters';
-        for self.vm($vm-name).sata-adapters.list -> $sata-adapter-name {
-            put "\t\t" ~ $sata-adapter-name;
-            put "\t\t\t" ~ 'bus                             = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).bus;
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).label;
-            put "\t\t\t" ~ 'pci slot number                 = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).pci-slot-number
-                with self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).pci-slot-number;
-            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).type;
-        }
-### scsi adapters
-        put "\t" ~ 'scsi adapters';
-        for self.vm($vm-name).scsi-adapters.list -> $scsi-adapter-name {
-            put "\t\t" ~ $scsi-adapter-name;
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).label;
-            put "\t\t\t" ~ 'scsi';
-            put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.bus;
-            put "\t\t\t\t" ~ 'pci-slot-number         = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.pci-slot-number
-                with self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.pci-slot-number;
-            put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.unit;
-            put "\t\t\t" ~ 'sharing                         = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).sharing;
-            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).type;
-        }
-### serial ports
-        put "\t" ~ 'serial ports';
-        for self.vm($vm-name).serial-ports.list -> $serial-port-name {
-            put "\t\t" ~ $serial-port-name;
-            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).allow-guest-control;
-            put "\t\t\t" ~ 'backing';
-            put "\t\t\t\t" ~ 'auto-detect             = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.auto-detect
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.auto-detect;
-            put "\t\t\t\t" ~ 'file                    = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.file
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.file;
-            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.host-device
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.host-device;
-            put "\t\t\t\t" ~ 'network location        = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.network-location
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.network-location;
-            put "\t\t\t\t" ~ 'no-rx-loss              = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.no-rx-loss
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.no-rx-loss;
-            put "\t\t\t\t" ~ 'pipe                    = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.pipe
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.pipe;
-            put "\t\t\t\t" ~ 'proxy                   = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.proxy
-                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.proxy;
-            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.type;
-            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).label;
-            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).start-connected;
-            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).state;
-            put "\t\t\t" ~ 'yield on poll                   = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).yield-on-poll;
-        }
-    }
 }
 
 ### POST https://{server}/api/vcenter/vm/{vm}
@@ -598,6 +370,241 @@ method !get (Str:D $identifier is required) {
     %!vms{$name}.serial-ports   = Hypervisor::VMware::vSphere::REST::vcenter::vms::vm::serial-ports.new(:%serial-ports);
 
     self.vm($name).queried      = True;
+}
+
+method dump (Str :$name) {
+    my @names = self.list;
+    @names = ( $name ) with $name;
+    for @names -> $vm-name {
+        my $identifier = self.vm($vm-name).identifier;
+        self.query($identifier);
+        put self.vm($vm-name).name;
+        put "\t" ~ 'vm identifier                                   = ' ~ self.vm($vm-name).identifier;
+#       put "\t" ~ 'power state                                     = ' ~ self.vm($vm-name).power-state;
+### boot
+        put "\t" ~ 'boot';
+        put "\t\t" ~ 'delay                                   = ' ~ self.vm($vm-name).boot.delay;
+        put "\t\t" ~ 'efi legacy boot                         = ' ~ so self.vm($vm-name).boot.efi-legacy-boot;
+        put "\t\t" ~ 'enter setup mode                        = ' ~ self.vm($vm-name).boot.enter-setup-mode;
+        put "\t\t" ~ 'retry                                   = ' ~ self.vm($vm-name).boot.retry;
+        put "\t\t" ~ 'retry delay                             = ' ~ self.vm($vm-name).boot.retry-delay;
+        put "\t\t" ~ 'type                                    = ' ~ self.vm($vm-name).boot.type;
+### boot-devices
+        if self.vm($vm-name).boot-devices.list {
+            put "\t" ~ 'boot devices';
+            my $boot-device-index = 0;
+            for self.vm($vm-name).boot-devices.list -> $boot-device {
+                put "\t\t" ~ $boot-device-index++ ~ ':';
+                put "\t\t\t" ~ 'disks                           = ' ~ $boot-device.disks.join(', ') if $boot-device.disks.elems;
+                put "\t\t\t" ~ 'nic                             = ' ~ $boot-device.nic with $boot-device.nic;
+                put "\t\t\t" ~ 'type                            = ' ~ $boot-device.type;
+            }
+        }
+### cpu
+        put "\t" ~ 'cpu';
+        put "\t\t" ~ 'cores per socket                        = ' ~ self.vm($vm-name).cpu.cores-per-socket;
+        put "\t\t" ~ 'count                                   = ' ~ self.vm($vm-name).cpu.count;
+        put "\t\t" ~ 'hot add enabled                         = ' ~ self.vm($vm-name).cpu.hot-add-enabled;
+        put "\t\t" ~ 'hot remove enabled                      = ' ~ self.vm($vm-name).cpu.hot-remove-enabled;
+### cdroms
+        put "\t" ~ 'cdroms';
+        for self.vm($vm-name).cdroms.list -> $cdrom-name {
+            put "\t\t" ~ $cdrom-name;
+            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).allow-guest-control;
+            put "\t\t\t" ~ 'backing';
+            put "\t\t\t\t" ~ 'auto detect             = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.auto-detect
+                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.auto-detect;
+            put "\t\t\t\t" ~ 'device access type      = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.device-access-type
+                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.device-access-type;
+            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.host-device
+                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.host-device;
+            put "\t\t\t\t" ~ 'iso file                = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.iso-file
+                with self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.iso-file;
+            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).backing.type;
+            with self.vm($vm-name).cdroms.cdrom($cdrom-name).ide {
+                put "\t\t\t" ~ 'ide';
+                put "\t\t\t\t" ~ 'master                  = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).ide.master;
+                put "\t\t\t\t" ~ 'primary                 = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).ide.primary;
+            }
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).label;
+            with self.vm($vm-name).cdroms.cdrom($cdrom-name).sata {
+                put "\t\t\t" ~ 'sata';
+                put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).sata.bus;
+                put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).sata.unit;
+            }
+            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).start-connected;
+            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).state;
+            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).cdroms.cdrom($cdrom-name).type;
+        }
+### disks
+        put "\t" ~ 'disks';
+        for self.vm($vm-name).disks.list -> $disk-name {
+            put "\t\t" ~ $disk-name;
+            put "\t\t\t" ~ 'backing';
+            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).disks.disk($disk-name).backing.type;
+            put "\t\t\t\t" ~ 'vmdk file               = ' ~ self.vm($vm-name).disks.disk($disk-name).backing.vmdk-file
+                with self.vm($vm-name).disks.disk($disk-name).backing.vmdk-file;
+            put "\t\t\t" ~ 'capacity                        = ' ~ self.vm($vm-name).disks.disk($disk-name).capacity
+                with self.vm($vm-name).disks.disk($disk-name).capacity;
+            with self.vm($vm-name).disks.disk($disk-name).ide {
+                put "\t\t\t" ~ 'ide';
+                put "\t\t\t\t" ~ 'master                  = ' ~ self.vm($vm-name).disks.disk($disk-name).ide.master;
+                put "\t\t\t\t" ~ 'primary                 = ' ~ self.vm($vm-name).disks.disk($disk-name).ide.primary;
+            }
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).disks.disk($disk-name).label;
+            with self.vm($vm-name).disks.disk($disk-name).sata {
+                put "\t\t\t" ~ 'sata';
+                put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).disks.disk($disk-name).sata.bus;
+                put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).disks.disk($disk-name).sata.unit;
+            }
+            with self.vm($vm-name).disks.disk($disk-name).scsi {
+                put "\t\t\t" ~ 'scsi';
+                put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).disks.disk($disk-name).scsi.bus;
+                put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).disks.disk($disk-name).scsi.unit;
+            }
+            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).disks.disk($disk-name).type;
+        }
+### floppies
+        put "\t" ~ 'floppies';
+        for self.vm($vm-name).floppies.list -> $floppy-name {
+            put "\t\t" ~ $floppy-name;
+            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).allow-guest-control;
+            put "\t\t\t" ~ 'backing';
+            put "\t\t\t\t" ~ 'auto-detect             = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.auto-detect
+                with self.vm($vm-name).floppies.floppy($floppy-name).backing.auto-detect;
+            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.type;
+            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.host-device
+                with self.vm($vm-name).floppies.floppy($floppy-name).backing.host-device;
+            put "\t\t\t\t" ~ 'image file              = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).backing.image-file
+                with self.vm($vm-name).floppies.floppy($floppy-name).backing.image-file;
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).label;
+            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).start-connected;
+            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).floppies.floppy($floppy-name).state;
+        }
+### guest OS
+        put "\t" ~ 'guest OS                                        = ' ~ self.vm($vm-name).guest-OS;
+### hardware
+        put "\t" ~ 'hardware';
+        put "\t\t" ~ 'upgrade error                           = ' ~ self.vm($vm-name).hardware.upgrade-error.kv
+            if self.vm($vm-name).hardware.upgrade-error.elems;
+        put "\t\t" ~ 'upgrade policy                          = ' ~ self.vm($vm-name).hardware.upgrade-policy;
+        put "\t\t" ~ 'upgrade status                          = ' ~ self.vm($vm-name).hardware.upgrade-status;
+        put "\t\t" ~ 'upgrade version                         = ' ~ self.vm($vm-name).hardware.upgrade-version
+            with self.vm($vm-name).hardware.upgrade-version;
+        put "\t\t" ~ 'version                                 = ' ~ self.vm($vm-name).hardware.version;
+### memory
+        put "\t" ~ 'memory';
+        put "\t\t" ~ 'hot add enabled                         = ' ~ self.vm($vm-name).memory.hot-add-enabled;
+        put "\t\t" ~ 'hot add increment size MiB              = ' ~ self.vm($vm-name).memory.hot-add-increment-size-MiB
+            with self.vm($vm-name).memory.hot-add-increment-size-MiB;
+        put "\t\t" ~ 'hot add limit MiB                       = ' ~ self.vm($vm-name).memory.hot-add-limit-MiB
+            with self.vm($vm-name).memory.hot-add-limit-MiB;
+        put "\t\t" ~ 'size MiB                                = ' ~ self.vm($vm-name).memory.size-MiB;
+### nics
+        put "\t" ~ 'nics';
+        for self.vm($vm-name).nics.list -> $nic-name {
+            put "\t\t" ~ $nic-name;
+            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).nics.nic($nic-name).allow-guest-control;
+            put "\t\t\t" ~ 'backing';
+            put "\t\t\t\t" ~ 'connection cookie       = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.connection-cookie
+                with self.vm($vm-name).nics.nic($nic-name).backing.connection-cookie;
+            put "\t\t\t\t" ~ 'distributed port        = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.distributed-port
+                with self.vm($vm-name).nics.nic($nic-name).backing.distributed-port;
+            put "\t\t\t\t" ~ 'distributed switch uuid = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.distributed-switch-uuid
+                with self.vm($vm-name).nics.nic($nic-name).backing.distributed-switch-uuid;
+            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.host-device
+                with self.vm($vm-name).nics.nic($nic-name).backing.host-device;
+            put "\t\t\t\t" ~ 'network                 = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.network
+                with self.vm($vm-name).nics.nic($nic-name).backing.network;
+            put "\t\t\t\t" ~ 'opaque network id       = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-id
+                with self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-id;
+            put "\t\t\t\t" ~ 'opaque-network-type      = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-type
+                with self.vm($vm-name).nics.nic($nic-name).backing.opaque-network-type;
+            put "\t\t\t\t" ~ 'network name            = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.network-name
+                with self.vm($vm-name).nics.nic($nic-name).backing.network-name;
+            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).nics.nic($nic-name).backing.type;
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).nics.nic($nic-name).label;
+            put "\t\t\t" ~ 'mac address                     = ' ~ self.vm($vm-name).nics.nic($nic-name).mac-address
+                with self.vm($vm-name).nics.nic($nic-name).mac-address;
+            put "\t\t\t" ~ 'mac type                        = ' ~ self.vm($vm-name).nics.nic($nic-name).mac-type;
+            put "\t\t\t" ~ 'pci slot number                 = ' ~ self.vm($vm-name).nics.nic($nic-name).pci-slot-number
+                with self.vm($vm-name).nics.nic($nic-name).pci-slot-number;
+            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).nics.nic($nic-name).start-connected;
+            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).nics.nic($nic-name).state;
+            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).nics.nic($nic-name).type;
+            put "\t\t\t" ~ 'upt compatibility enabled       = ' ~ self.vm($vm-name).nics.nic($nic-name).upt-compatibility-enabled
+                with self.vm($vm-name).nics.nic($nic-name).upt-compatibility-enabled;
+            put "\t\t\t" ~ 'wake on lan enabled             = ' ~ self.vm($vm-name).nics.nic($nic-name).wake-on-lan-enabled;
+        }
+### parallel ports
+        put "\t" ~ 'parallel ports';
+        for self.vm($vm-name).parallel-ports.list -> $parallel-port-name {
+            put "\t\t" ~ $parallel-port-name;
+            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).allow-guest-control;
+            put "\t\t\t" ~ 'backing';
+            put "\t\t\t\t" ~ 'auto-detect             = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.auto-detect
+                with self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.auto-detect;
+            put "\t\t\t\t" ~ 'file                    = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.file
+                with self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.file;
+            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.host-device
+                with self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.host-device;
+            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).backing.type;
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).label;
+            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).start-connected;
+            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).parallel-ports.parallel-port($parallel-port-name).state;
+        }
+### power state
+        put "\t" ~ 'power state                                     = ' ~ self.vm($vm-name).power-state;
+### sata adapters
+        put "\t" ~ 'sata adapters';
+        for self.vm($vm-name).sata-adapters.list -> $sata-adapter-name {
+            put "\t\t" ~ $sata-adapter-name;
+            put "\t\t\t" ~ 'bus                             = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).bus;
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).label;
+            put "\t\t\t" ~ 'pci slot number                 = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).pci-slot-number
+                with self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).pci-slot-number;
+            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).sata-adapters.sata-adapter($sata-adapter-name).type;
+        }
+### scsi adapters
+        put "\t" ~ 'scsi adapters';
+        for self.vm($vm-name).scsi-adapters.list -> $scsi-adapter-name {
+            put "\t\t" ~ $scsi-adapter-name;
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).label;
+            put "\t\t\t" ~ 'scsi';
+            put "\t\t\t\t" ~ 'bus                     = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.bus;
+            put "\t\t\t\t" ~ 'pci-slot-number         = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.pci-slot-number
+                with self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.pci-slot-number;
+            put "\t\t\t\t" ~ 'unit                    = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).scsi.unit;
+            put "\t\t\t" ~ 'sharing                         = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).sharing;
+            put "\t\t\t" ~ 'type                            = ' ~ self.vm($vm-name).scsi-adapters.scsi-adapter($scsi-adapter-name).type;
+        }
+### serial ports
+        put "\t" ~ 'serial ports';
+        for self.vm($vm-name).serial-ports.list -> $serial-port-name {
+            put "\t\t" ~ $serial-port-name;
+            put "\t\t\t" ~ 'allow guest control             = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).allow-guest-control;
+            put "\t\t\t" ~ 'backing';
+            put "\t\t\t\t" ~ 'auto-detect             = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.auto-detect
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.auto-detect;
+            put "\t\t\t\t" ~ 'file                    = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.file
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.file;
+            put "\t\t\t\t" ~ 'host device             = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.host-device
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.host-device;
+            put "\t\t\t\t" ~ 'network location        = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.network-location
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.network-location;
+            put "\t\t\t\t" ~ 'no-rx-loss              = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.no-rx-loss
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.no-rx-loss;
+            put "\t\t\t\t" ~ 'pipe                    = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.pipe
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.pipe;
+            put "\t\t\t\t" ~ 'proxy                   = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.proxy
+                with self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.proxy;
+            put "\t\t\t\t" ~ 'type                    = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).backing.type;
+            put "\t\t\t" ~ 'label                           = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).label;
+            put "\t\t\t" ~ 'start connected                 = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).start-connected;
+            put "\t\t\t" ~ 'state                           = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).state;
+            put "\t\t\t" ~ 'yield on poll                   = ' ~ self.vm($vm-name).serial-ports.serial-port($serial-port-name).yield-on-poll;
+        }
+    }
 }
 
 ### GET https://{server}/api/vcenter/vm
