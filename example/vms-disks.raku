@@ -18,7 +18,7 @@ use Our::Utilities;
 use Hypervisor::VMware::vSphere::REST::vcenter;
 
 #my Our::Redis                                   $redis-cli;
-#my Hypervisor::VMware::vSphere::REST::vcenter   $vcenter;
+my Hypervisor::VMware::vSphere::REST::vcenter   $vcenter;
 
 sub MAIN (
     Str:D               :$vcenter-server!,                      #= vCenter server name
