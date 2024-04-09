@@ -41,7 +41,7 @@ sub MAIN (
     Int                 :@sort-columns,                         #= accumulate column numbers to sort by
     Bool                :$sort-descending,                      #= sort in descending order
     Bool                :$group-by-system,                      #= group data around systems
-    Bool                :$use-cache,                            #= use previous cached data
+    Bool                :$use-cache = True,                     #= use previous cached data
 ) {
     my Bool $mailing;
     my $from                = $mail-from;
